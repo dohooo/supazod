@@ -41,12 +41,11 @@ export const publicNonUpdatableViewRowSchemaSchema = z.object({
   username: z.string().nullable(),
 });
 
-export const publicgetstatusargsschemaArgsSchema = z.object({
+export const publicGetStatusArgsSchemaSchema = z.object({
   name_param: z.string(),
 });
 
-export const publicgetstatusreturnsschemaReturnsSchema =
-  publicUserStatusSchemaSchema;
+export const publicGetStatusReturnsSchemaSchema = publicUserStatusSchemaSchema;
 
 export const schemaBUserStatusSchema = z.union([
   z.literal("ONLINE"),
@@ -80,19 +79,15 @@ export const schemaBNonUpdatableViewRowSchemaSchema = z.object({
   username: z.string().nullable(),
 });
 
-export const schemabgetdeploymentconfigschemaargsschemaArgsSchema = z.record(
-  propertyKeySchema,
-  z.never(),
-);
+export const schemaBGetDeploymentConfigSchemaArgsSchemaSchema = z.object({});
 
-export const schemabgetdeploymentconfigschemareturnsschemaReturnsSchema =
-  jsonSchema;
+export const schemaBGetDeploymentConfigSchemaReturnsSchemaSchema = jsonSchema;
 
-export const schemabgetstatusargsschemaArgsSchema = z.object({
+export const schemaBGetStatusArgsSchemaSchema = z.object({
   name_param: z.string(),
 });
 
-export const schemabgetstatusreturnsschemaReturnsSchema =
+export const schemaBGetStatusReturnsSchemaSchema =
   schemaBUserStatusSchemaSchema;
 
 export const publicUsersRowSchemaSchema = z.object({

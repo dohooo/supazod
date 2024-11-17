@@ -2,6 +2,7 @@ import ts from 'typescript';
 import { z } from 'zod';
 
 import { getNodeName } from './get-node-name';
+import { logger } from './logger';
 
 const enumFormatterSchema = z.function().args(z.string()).returns(z.string());
 const compositeTypeFormatterSchema = z
@@ -47,12 +48,12 @@ function getBuiltinTypeDefinition(typeName: string): string {
 
 interface TypeCollector {
   typeStrings: string[];
-  enumNames: Array<{
+  enumNames: {
     name: string;
     formattedName: string;
     schema?: string;
-  }>;
-  compositeTypeNames: Array<{ name: string; formattedName: string }>;
+  }[];
+  compositeTypeNames: { name: string; formattedName: string }[];
 }
 
 interface NodeProcessorContext {
@@ -381,28 +382,37 @@ function processFunctionDefinition(
       const memberName = getNodeName(memberNode);
       if (memberName === 'Args' || memberName === 'Returns') {
         memberNode.forEachChild((typeNode) => {
-          const formattedName = context.formatters.function(
-            `${toCamelCase([context.schema, funcName, memberName])}Schema`,
-            memberName,
+          const formattedName = `${toCamelCase([context.schema, funcName, memberName])}Schema`;
+
+          logger.debug(
+            `Processing function ${funcName}.${memberName}, node kind: ${ts.SyntaxKind[typeNode.kind]}`,
           );
 
           let typeText = typeNode.getText(context.sourceFile);
+          logger.debug(`Original type text: ${typeText}`);
 
-          if (typeText.includes('Record<PropertyKey, never>')) {
+          if (typeNode.kind === ts.SyntaxKind.BooleanKeyword) {
+            typeText = 'boolean';
+            logger.debug(`Converted to boolean type`);
+          } else if (typeText.includes('Record<PropertyKey, never>')) {
             typeText = '{}';
-          }
-
-          if (ts.isTypeReferenceNode(typeNode)) {
+          } else if (ts.isTypeReferenceNode(typeNode)) {
+            typeText = typeNode.getText(context.sourceFile);
+          } else if (ts.isTypeLiteralNode(typeNode)) {
             typeText = typeNode.getText(context.sourceFile);
           }
 
-          if (ts.isTypeLiteralNode(typeNode)) {
-            typeText = typeNode.getText(context.sourceFile);
-          }
+          logger.debug(`Final type text: ${typeText}`);
 
-          context.collector.typeStrings.push(
-            `export type ${formattedName} = ${typeText}`,
-          );
+          if (memberName === 'Returns') {
+            context.collector.typeStrings.push(
+              `export type ${formattedName} = ${typeText};`,
+            );
+          } else {
+            context.collector.typeStrings.push(
+              `export type ${formattedName} = ${typeText};`,
+            );
+          }
         });
       }
     });
@@ -525,18 +535,34 @@ export function getAllSchemas(sourceText: string): string[] {
   const schemas: string[] = [];
 
   function visit(node: ts.Node) {
-    if (ts.isInterfaceDeclaration(node) && node.name.text === 'Database') {
-      // Database interface found, get its members
-      node.members.forEach((member) => {
-        if (ts.isPropertySignature(member) && member.name) {
-          const schemaName = member.name.getText(sourceFile);
-          schemas.push(schemaName);
-        }
-      });
+    if (ts.isTypeAliasDeclaration(node) && node.name.text === 'Database') {
+      logger.debug('Found Database type alias');
+
+      if (ts.isTypeLiteralNode(node.type)) {
+        node.type.members.forEach((member) => {
+          if (ts.isPropertySignature(member) && member.name) {
+            const schemaName = member.name.getText(sourceFile);
+            logger.debug(`Found schema: ${schemaName}`);
+            schemas.push(schemaName);
+          } else {
+            logger.debug(
+              `Skipped member: ${ts.SyntaxKind[member.kind]} (not a property signature or no name)`,
+            );
+          }
+        });
+      }
     }
+
     ts.forEachChild(node, visit);
   }
 
   visit(sourceFile);
+
+  logger.debug(`Found ${schemas.length} schemas: ${schemas.join(', ')}`);
+
+  if (schemas.length === 0) {
+    logger.debug('Source text preview:', sourceText.slice(0, 500));
+  }
+
   return schemas;
 }

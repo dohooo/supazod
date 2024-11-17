@@ -70,8 +70,12 @@ export default async function supabaseToZod(opts: SupabaseToZodOptions) {
   const sourceText = await fs.readFile(inputPath, 'utf-8');
 
   if (!opts.schema.length) {
-    logger.warn('No schema specified, using all available schemas', '🤖');
+    logger.warn(`No schema specified, using all available schemas`, '🤖');
     opts.schema = getAllSchemas(sourceText);
+  }
+
+  if (!opts.schema.length) {
+    throw new Error('No schemas specified');
   }
 
   logger.info(`Detected schemas: ${opts.schema.join(', ')}`, '📋');
