@@ -1,0 +1,55 @@
+{
+  "name": "supazod",
+  "description": "Generate Zod schemas from Supabase CLI generated types",
+  "version": "1.0.0",
+  "license": "MIT",
+  "type": "module",
+  "main": "./dist/index.js",
+  "source": "./src/index.ts",
+  "types": "./dist/index.d.ts",
+  "files": [
+    "dist/**"
+  ],
+  "bin": {
+    "supazod": "./dist/cli.js"
+  },
+  "scripts": {
+    "temp": "node --loader=ts-node/esm --experimental-specifier-resolution=node ./src/lib/temp.ts",
+    "build": "npm run clean && tsup",
+    "clean": "rm -rf dist",
+    "dev": "tsup --watch",
+    "lint": "eslint src/**",
+    "lint:report": "eslint src/** --format json",
+    "lint:fix": "eslint src/** --fix",
+    "format:write": "prettier --write \"src/**/*.{ts,tsx,md}\"",
+    "format:check": "prettier --check \"src/**/*.{ts,tsx,md}\"",
+    "semantic-release": "semantic-release"
+  },
+  "dependencies": {
+    "case": "1.6.3",
+    "commander": "^12.0.0",
+    "prettier": "3.2.5",
+    "slash": "^5.1.0",
+    "ts-to-zod": "3.7.0",
+    "typescript": "5.3.3",
+    "zod": "^3.22.4"
+  },
+  "devDependencies": {
+    "@semantic-release/changelog": "^6.0.3",
+    "@semantic-release/commit-analyzer": "^11.1.0",
+    "@semantic-release/git": "^10.0.1",
+    "@semantic-release/npm": "^11.0.2",
+    "@semantic-release/release-notes-generator": "^12.1.0",
+    "@types/node": "20.11.16",
+    "@types/prettier": "2.7.3",
+    "eslint": "^8.56.0",
+    "eslint-config-universe": "^12.0.0",
+    "semantic-release": "^23.0.2",
+    "ts-node": "^10.9.2",
+    "tsup": "8.0.1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/dohooo/supazod.git"
+  }
+}
