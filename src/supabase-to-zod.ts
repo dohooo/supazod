@@ -55,29 +55,49 @@ export default async function supabaseToZod(opts: SupabaseToZodOptions) {
   const parsedTypes = transformTypes({ sourceText, ...opts });
 
   logger.info('Generating Zod schemas...', '📠');
-  const { getZodSchemasFile, errors } = generate({
-    sourceText: parsedTypes,
-    ...opts,
-  });
 
-  if (errors.length > 0) {
-    throw new Error(errors.join('\n'));
+  try {
+    const { getZodSchemasFile, transformedSourceText, errors } = generate({
+      sourceText: parsedTypes,
+      ...opts,
+    });
+
+    if (errors.length > 0) {
+      logger.error('Schema generation failed with the following errors:');
+      errors.forEach((error) => logger.error(`- ${error}`));
+      throw new Error('Schema generation failed. See above for details.');
+    }
+
+    if (opts.verbose) {
+      logger.debug('Parsed types:', parsedTypes);
+      logger.debug('Transformed source:', transformedSourceText);
+    }
+
+    const zodSchemasFile = getZodSchemasFile(
+      getImportPath(outputPath, inputPath),
+    );
+
+    console.log({
+      sourceText: parsedTypes,
+      transformedSourceText,
+      zodSchemasFile,
+      ...opts,
+    });
+
+    const prettierConfig = await prettier.resolveConfig(process.cwd());
+
+    logger.info('Writing output file...', '💾');
+    await fs.writeFile(
+      outputPath,
+      await prettier.format(zodSchemasFile, {
+        parser: 'babel-ts',
+        ...prettierConfig,
+      }),
+    );
+
+    logger.info('Successfully generated Zod schemas!', '✅');
+  } catch (error) {
+    logger.error(`Failed to generate schemas: ${error}`, '❌');
+    throw new Error('Failed to generate schemas: ' + error);
   }
-
-  const zodSchemasFile = getZodSchemasFile(
-    getImportPath(outputPath, inputPath),
-  );
-
-  const prettierConfig = await prettier.resolveConfig(process.cwd());
-
-  logger.info('Writing output file...', '💾');
-  await fs.writeFile(
-    outputPath,
-    await prettier.format(zodSchemasFile, {
-      parser: 'babel-ts',
-      ...prettierConfig,
-    }),
-  );
-
-  logger.info('Successfully generated Zod schemas!', '✅');
 }

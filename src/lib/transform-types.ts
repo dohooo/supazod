@@ -20,15 +20,19 @@ const tableOrViewFormatterSchema = z
 export const transformTypesOptionsSchema = z.object({
   sourceText: z.string(),
   schema: z.string().default('public'),
-  enumFormatter: enumFormatterSchema.default(() => (name: string) => name),
+  processDependencies: z.boolean().default(true),
+  enumFormatter: enumFormatterSchema.default(
+    () => (name: string) => toCamelCase([name]),
+  ),
   compositeTypeFormatter: compositeTypeFormatterSchema.default(
-    () => (name: string) => name,
+    () => (name: string) => toCamelCase([name]),
   ),
   functionFormatter: functionFormatterSchema.default(
-    () => (name: string, type: string) => `${name}${type}`,
+    () => (name: string, type: string) => `${toCamelCase([name, type])}`,
   ),
   tableOrViewFormatter: tableOrViewFormatterSchema.default(
-    () => (name: string, operation: string) => `${name}${operation}`,
+    () => (name: string, operation: string) =>
+      `${toCamelCase([name, operation])}`,
   ),
 });
 
@@ -43,7 +47,11 @@ function getBuiltinTypeDefinition(typeName: string): string {
 
 interface TypeCollector {
   typeStrings: string[];
-  enumNames: Array<{ name: string; formattedName: string }>;
+  enumNames: Array<{
+    name: string;
+    formattedName: string;
+    schema?: string;
+  }>;
   compositeTypeNames: Array<{ name: string; formattedName: string }>;
 }
 
@@ -51,6 +59,7 @@ interface NodeProcessorContext {
   sourceFile: ts.SourceFile;
   schema: string;
   collector: TypeCollector;
+  processDependencies: boolean;
   formatters: {
     tableOrView: (name: string, operation: string) => string;
     enum: (name: string) => string;
@@ -80,6 +89,7 @@ export const transformTypes = z
       sourceFile,
       schema: opts.schema,
       collector,
+      processDependencies: opts.processDependencies ?? true,
       formatters: {
         tableOrView: opts.tableOrViewFormatter,
         enum: opts.enumFormatter,
@@ -137,13 +147,94 @@ function processSchemaNode(node: ts.Node, context: NodeProcessorContext) {
   if (!ts.isPropertySignature(node)) return;
 
   const schemaName = getNodeName(node);
-  if (schemaName !== context.schema) return;
 
-  node.forEachChild((child) => {
-    if (ts.isTypeLiteralNode(child)) {
-      processSchemaMembers(child, context);
+  if (schemaName === context.schema) {
+    node.forEachChild((child) => {
+      if (ts.isTypeLiteralNode(child)) {
+        processSchemaMembers(child, context);
+      }
+    });
+  }
+
+  if (context.processDependencies) {
+    node.forEachChild((child) => {
+      if (ts.isTypeLiteralNode(child)) {
+        processOtherSchemaDependencies(child, schemaName, context);
+      }
+    });
+  }
+}
+
+function processOtherSchemaDependencies(
+  node: ts.TypeLiteralNode,
+  schemaName: string,
+  context: NodeProcessorContext,
+) {
+  if (schemaName === context.schema) return;
+
+  node.forEachChild((member) => {
+    if (!ts.isPropertySignature(member) || !ts.isIdentifier(member.name)) {
+      return;
+    }
+
+    if (member.name.text === 'Enums') {
+      visitTypeLiteralChild(member, (typeLiteral) => {
+        typeLiteral.forEachChild((enumNode) => {
+          if (!ts.isPropertySignature(enumNode)) return;
+
+          const enumName = getNodeName(enumNode);
+          enumNode.forEachChild((typeNode) => {
+            if (
+              ts.isUnionTypeNode(typeNode) ||
+              ts.isLiteralTypeNode(typeNode)
+            ) {
+              const formattedName = `${schemaName}_${context.formatters.enum(enumName)}`;
+              const typeText = typeNode.getText(context.sourceFile);
+
+              if (isTypeReferenced(context.sourceFile, schemaName, enumName)) {
+                context.collector.typeStrings.push(
+                  `export type ${formattedName} = ${typeText}`,
+                );
+                context.collector.enumNames.push({
+                  name: enumName,
+                  formattedName,
+                  schema: schemaName,
+                });
+              }
+            }
+          });
+        });
+      });
     }
   });
+}
+
+function isTypeReferenced(
+  sourceFile: ts.SourceFile,
+  schema: string,
+  typeName: string,
+): boolean {
+  let isReferenced = false;
+
+  function visit(node: ts.Node) {
+    if (isReferenced) return;
+
+    if (ts.isPropertySignature(node) && node.type) {
+      const typeRef = node.type.getText(sourceFile);
+      if (
+        typeRef?.includes(`Database['${schema}']['Enums']['${typeName}']`) ||
+        typeRef?.includes(`Database["${schema}"]["Enums"]["${typeName}"]`)
+      ) {
+        isReferenced = true;
+        return;
+      }
+    }
+
+    node.forEachChild(visit);
+  }
+
+  sourceFile.forEachChild(visit);
+  return isReferenced;
 }
 
 function processSchemaMembers(
@@ -200,10 +291,7 @@ function processTableOperations(
 
       operationNode.forEachChild((typeNode) => {
         if (ts.isTypeLiteralNode(typeNode) || ts.isTupleTypeNode(typeNode)) {
-          const formattedName = context.formatters.tableOrView(
-            tableName,
-            operation,
-          );
+          const formattedName = `${toCamelCase([context.schema, tableName, operation])}Schema`;
           const typeText = typeNode.getText(context.sourceFile);
           context.collector.typeStrings.push(
             `export type ${formattedName} = ${typeText}`,
@@ -225,7 +313,7 @@ function processEnums(
 
       enumNode.forEachChild((typeNode) => {
         if (ts.isUnionTypeNode(typeNode) || ts.isLiteralTypeNode(typeNode)) {
-          const formattedName = context.formatters.enum(enumName);
+          const formattedName = `${toCamelCase([context.schema, enumName])}Schema`;
           const typeText = typeNode.getText(context.sourceFile);
           context.collector.typeStrings.push(
             `export type ${formattedName} = ${typeText}`,
@@ -233,6 +321,7 @@ function processEnums(
           context.collector.enumNames.push({
             name: enumName,
             formattedName,
+            schema: context.schema,
           });
         }
       });
@@ -274,28 +363,48 @@ function processFunctions(
     typeLiteral.forEachChild((funcNode) => {
       if (!ts.isPropertySignature(funcNode)) return;
 
-      const functionName = getNodeName(funcNode);
-      funcNode.forEachChild((n) => {
-        if (ts.isTypeLiteralNode(n)) {
-          n.forEachChild((argNode) => {
-            if (ts.isPropertySignature(argNode)) {
-              const argType = getNodeName(argNode);
-              argNode.forEachChild((typeNode) => {
-                if (ts.isTypeReferenceNode(typeNode)) {
-                  const formattedName = context.formatters.function(
-                    functionName,
-                    argType,
-                  );
-                  const typeText = typeNode.getText(context.sourceFile);
-                  context.collector.typeStrings.push(
-                    `export type ${formattedName} = ${typeText}`,
-                  );
-                }
-              });
-            }
-          });
-        }
-      });
+      const funcName = getNodeName(funcNode);
+      processFunctionDefinition(funcNode, funcName, context);
+    });
+  });
+}
+
+function processFunctionDefinition(
+  node: ts.PropertySignature,
+  funcName: string,
+  context: NodeProcessorContext,
+) {
+  visitTypeLiteralChild(node, (typeLiteral) => {
+    typeLiteral.forEachChild((memberNode) => {
+      if (!ts.isPropertySignature(memberNode)) return;
+
+      const memberName = getNodeName(memberNode);
+      if (memberName === 'Args' || memberName === 'Returns') {
+        memberNode.forEachChild((typeNode) => {
+          const formattedName = context.formatters.function(
+            `${toCamelCase([context.schema, funcName, memberName])}Schema`,
+            memberName,
+          );
+
+          let typeText = typeNode.getText(context.sourceFile);
+
+          if (typeText.includes('Record<PropertyKey, never>')) {
+            typeText = '{}';
+          }
+
+          if (ts.isTypeReferenceNode(typeNode)) {
+            typeText = typeNode.getText(context.sourceFile);
+          }
+
+          if (ts.isTypeLiteralNode(typeNode)) {
+            typeText = typeNode.getText(context.sourceFile);
+          }
+
+          context.collector.typeStrings.push(
+            `export type ${formattedName} = ${typeText}`,
+          );
+        });
+      }
     });
   });
 }
@@ -312,12 +421,10 @@ function visitTypeLiteralChild(
 }
 
 function formatOutput(collector: TypeCollector, schema: string): string {
-  // First process enums since they might be dependencies for other types
   const enumTypes = collector.typeStrings
     .filter((s) => s.includes(' = "'))
     .join(';\n');
 
-  // Then process other types
   const otherTypes = collector.typeStrings
     .filter((s) => !s.includes(' = "'))
     .filter((s) => !s.includes('Record<number'))
@@ -325,24 +432,25 @@ function formatOutput(collector: TypeCollector, schema: string): string {
 
   let parsedTypes = `${enumTypes}\n\n${otherTypes}`;
 
-  // Add builtin types
   const builtinTypes = ['PropertyKey'];
   for (const typeName of builtinTypes) {
     parsedTypes = `${getBuiltinTypeDefinition(typeName)}\n${parsedTypes}`;
   }
 
-  // Replace enum references
-  for (const { name, formattedName } of collector.enumNames) {
+  for (const {
+    name,
+    formattedName,
+    schema: enumSchema,
+  } of collector.enumNames) {
     parsedTypes = replaceTypeReferences(
       parsedTypes,
-      schema,
+      enumSchema || schema,
       'Enums',
       name,
       formattedName,
     );
   }
 
-  // Replace composite type references
   for (const { name, formattedName } of collector.compositeTypeNames) {
     parsedTypes = replaceTypeReferences(
       parsedTypes,
@@ -363,13 +471,45 @@ function replaceTypeReferences(
   name: string,
   formattedName: string,
 ): string {
+  const doubleQuotePattern = `Database["${schema}"]["${category}"]["${name}"]`;
+  const singleQuotePattern = `Database['${schema}']['${category}']['${name}']`;
+
   return types
-    .replaceAll(
-      `Database["${schema}"]["${category}"]["${name}"]`,
-      formattedName,
-    )
-    .replaceAll(
-      `Database['${schema}']['${category}']['${name}']`,
-      formattedName,
-    );
+    .split('\n')
+    .map((line) => {
+      if (line.includes(doubleQuotePattern)) {
+        return line.replace(doubleQuotePattern, formattedName);
+      }
+      if (line.includes(singleQuotePattern)) {
+        return line.replace(singleQuotePattern, formattedName);
+      }
+      return line;
+    })
+    .join('\n');
+}
+
+function toCamelCase(parts: string[]): string {
+  // 如果第一个部分是 schema，特殊处理
+  if (parts[0] === 'schema') {
+    const schemaPrefix = `schema${parts[1].toUpperCase()}`;
+    const rest = parts
+      .slice(2)
+      .map((word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+      .join('');
+    return schemaPrefix + rest;
+  }
+
+  // 处理普通情况：第一部分小写，其余部分首字母大写
+  return parts
+    .map((word, index) => {
+      const subParts = word.split('_');
+      return subParts
+        .map((subWord, subIndex) =>
+          index === 0 && subIndex === 0
+            ? subWord.toLowerCase()
+            : subWord.charAt(0).toUpperCase() + subWord.slice(1).toLowerCase(),
+        )
+        .join('');
+    })
+    .join('');
 }
