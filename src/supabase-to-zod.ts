@@ -30,6 +30,9 @@ export const supabaseToZodOptionsSchema = transformTypesOptionsSchema
   .extend({
     input: z.string(),
     output: z.string(),
+    schema: z
+      .union([z.string(), z.array(z.string())])
+      .transform((val) => (Array.isArray(val) ? val : [val])),
     skipValidation: z.boolean().optional(),
     maxRun: z.number().optional(),
     nameFilter: nameFilterSchema.optional(),
@@ -42,17 +45,37 @@ export const supabaseToZodOptionsSchema = transformTypesOptionsSchema
 
 export type SupabaseToZodOptions = z.infer<typeof supabaseToZodOptionsSchema>;
 
+async function collectTypes(inputPath: string, opts: SupabaseToZodOptions) {
+  logger.info('Reading input file...', '📦');
+  const sourceText = await fs.readFile(inputPath, 'utf-8');
+
+  logger.info('Transforming types...', '🔄');
+
+  const allParsedTypes = await Promise.all(
+    opts.schema.map(async (schema) => {
+      const schemaParsedTypes = transformTypes({
+        sourceText,
+        ...opts,
+        schema,
+      });
+      return schemaParsedTypes;
+    }),
+  );
+
+  const combinedParsedTypes = allParsedTypes.join('\n\n');
+
+  logger.debug(`Options: ${JSON.stringify({ sourceText, ...opts }, null, 2)}`);
+
+  return combinedParsedTypes;
+}
+
 export default async function supabaseToZod(opts: SupabaseToZodOptions) {
   logger.setVerbose(opts.verbose || false);
 
   const inputPath = join(process.cwd(), opts.input);
   const outputPath = join(process.cwd(), opts.output);
 
-  logger.info('Reading input file...', '📦');
-  const sourceText = await fs.readFile(inputPath, 'utf-8');
-
-  logger.info('Transforming types...', '🔄');
-  const parsedTypes = transformTypes({ sourceText, ...opts });
+  const parsedTypes = await collectTypes(inputPath, opts);
 
   logger.info('Generating Zod schemas...', '📠');
 
@@ -76,13 +99,6 @@ export default async function supabaseToZod(opts: SupabaseToZodOptions) {
     const zodSchemasFile = getZodSchemasFile(
       getImportPath(outputPath, inputPath),
     );
-
-    console.log({
-      sourceText: parsedTypes,
-      transformedSourceText,
-      zodSchemasFile,
-      ...opts,
-    });
 
     const prettierConfig = await prettier.resolveConfig(process.cwd());
 
