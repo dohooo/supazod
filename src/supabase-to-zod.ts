@@ -9,6 +9,7 @@ import {
   getImportPath,
   transformTypesOptionsSchema,
 } from './lib';
+import { logger } from './lib/logger';
 
 const simplifiedJSDocTagSchema = z.object({
   name: z.string(),
@@ -36,21 +37,24 @@ export const supabaseToZodOptionsSchema = transformTypesOptionsSchema
     getSchemaName: getSchemaNameSchema.optional(),
     keepComments: z.boolean().optional().default(false),
     skipParseJSDoc: z.boolean().optional().default(false),
+    verbose: z.boolean().optional().default(false),
   });
 
 export type SupabaseToZodOptions = z.infer<typeof supabaseToZodOptionsSchema>;
 
 export default async function supabaseToZod(opts: SupabaseToZodOptions) {
+  logger.setVerbose(opts.verbose || false);
+
   const inputPath = join(process.cwd(), opts.input);
   const outputPath = join(process.cwd(), opts.output);
 
-  console.log('📦 Reading input file...');
+  logger.info('Reading input file...', '📦');
   const sourceText = await fs.readFile(inputPath, 'utf-8');
 
-  console.log('🔄 Transforming types...');
+  logger.info('Transforming types...', '🔄');
   const parsedTypes = transformTypes({ sourceText, ...opts });
 
-  console.log('⚙️ Generating Zod schemas...');
+  logger.info('Generating Zod schemas...', '📠');
   const { getZodSchemasFile, errors } = generate({
     sourceText: parsedTypes,
     ...opts,
@@ -66,7 +70,7 @@ export default async function supabaseToZod(opts: SupabaseToZodOptions) {
 
   const prettierConfig = await prettier.resolveConfig(process.cwd());
 
-  console.log('💾 Writing output file...');
+  logger.info('Writing output file...', '💾');
   await fs.writeFile(
     outputPath,
     await prettier.format(zodSchemasFile, {
@@ -75,5 +79,5 @@ export default async function supabaseToZod(opts: SupabaseToZodOptions) {
     }),
   );
 
-  console.log('✅ Successfully generated Zod schemas!');
+  logger.info('Successfully generated Zod schemas!', '✅');
 }
