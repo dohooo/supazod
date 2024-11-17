@@ -499,7 +499,6 @@ function replaceTypeReferences(
 }
 
 function toCamelCase(parts: string[]): string {
-  // 如果第一个部分是 schema，特殊处理
   if (parts[0] === 'schema') {
     const schemaPrefix = `schema${parts[1].toUpperCase()}`;
     const rest = parts
@@ -509,7 +508,6 @@ function toCamelCase(parts: string[]): string {
     return schemaPrefix + rest;
   }
 
-  // 处理普通情况：第一部分小写，其余部分首字母大写
   return parts
     .map((word, index) => {
       const subParts = word.split('_');

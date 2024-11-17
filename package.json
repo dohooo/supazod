@@ -17,7 +17,7 @@
     "build": "npm run clean && tsup",
     "clean": "rm -rf dist",
     "dev": "tsup --watch",
-    "example": "node --loader=ts-node/esm --experimental-specifier-resolution=node ./src/cli.ts --input ./example/types.ts --output ./example/schema.ts",
+    "example": "node --loader=ts-node/esm --experimental-specifier-resolution=node ./src/cli.ts -i ./example/types.ts -o ./example/schema.ts -t ./example/schema.d.ts",
     "lint": "eslint src/**",
     "lint:report": "eslint src/** --format json",
     "lint:fix": "eslint src/** --fix",

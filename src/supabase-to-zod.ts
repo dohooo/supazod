@@ -31,6 +31,7 @@ export const supabaseToZodOptionsSchema = transformTypesOptionsSchema
   .extend({
     input: z.string(),
     output: z.string(),
+    typesOutput: z.string().optional(),
     schema: z
       .union([z.string(), z.array(z.string())])
       .transform((val) => (Array.isArray(val) ? val : [val])),
@@ -93,7 +94,7 @@ export default async function supabaseToZod(opts: SupabaseToZodOptions) {
   logger.info('Generating Zod schemas...', '📠');
 
   try {
-    const { getZodSchemasFile, transformedSourceText, errors } = generate({
+    const { getZodSchemasFile, getInferredTypes, errors } = generate({
       sourceText: parsedTypes,
       ...opts,
     });
@@ -104,18 +105,13 @@ export default async function supabaseToZod(opts: SupabaseToZodOptions) {
       throw new Error('Schema generation failed. See above for details.');
     }
 
-    if (opts.verbose) {
-      logger.debug('Parsed types:', parsedTypes);
-      logger.debug('Transformed source:', transformedSourceText);
-    }
-
     const zodSchemasFile = getZodSchemasFile(
       getImportPath(outputPath, inputPath),
     );
 
     const prettierConfig = await prettier.resolveConfig(process.cwd());
 
-    logger.info('Writing output file...', '💾');
+    logger.info('Writing schema file...', '💾');
     await fs.writeFile(
       outputPath,
       await prettier.format(zodSchemasFile, {
@@ -123,6 +119,22 @@ export default async function supabaseToZod(opts: SupabaseToZodOptions) {
         ...prettierConfig,
       }),
     );
+
+    if (opts.typesOutput) {
+      const typesOutputPath = join(process.cwd(), opts.typesOutput);
+      logger.info('Writing types file...', '📝');
+
+      const zodSchemasImportPath = getImportPath(typesOutputPath, outputPath);
+      const typesContent = getInferredTypes(zodSchemasImportPath);
+
+      await fs.writeFile(
+        typesOutputPath,
+        await prettier.format(typesContent, {
+          parser: 'babel-ts',
+          ...prettierConfig,
+        }),
+      );
+    }
 
     logger.info('Successfully generated Zod schemas!', '✅');
   } catch (error) {
