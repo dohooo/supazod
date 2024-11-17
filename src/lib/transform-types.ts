@@ -19,7 +19,7 @@ const tableOrViewFormatterSchema = z
 
 export const transformTypesOptionsSchema = z.object({
   sourceText: z.string(),
-  schema: z.string().default('public'),
+  schema: z.string().default(''),
   processDependencies: z.boolean().default(true),
   enumFormatter: enumFormatterSchema.default(
     () => (name: string) => toCamelCase([name]),
@@ -512,4 +512,31 @@ function toCamelCase(parts: string[]): string {
         .join('');
     })
     .join('');
+}
+
+export function getAllSchemas(sourceText: string): string[] {
+  const sourceFile = ts.createSourceFile(
+    'temp.ts',
+    sourceText,
+    ts.ScriptTarget.Latest,
+    true,
+  );
+
+  const schemas: string[] = [];
+
+  function visit(node: ts.Node) {
+    if (ts.isInterfaceDeclaration(node) && node.name.text === 'Database') {
+      // Database interface found, get its members
+      node.members.forEach((member) => {
+        if (ts.isPropertySignature(member) && member.name) {
+          const schemaName = member.name.getText(sourceFile);
+          schemas.push(schemaName);
+        }
+      });
+    }
+    ts.forEachChild(node, visit);
+  }
+
+  visit(sourceFile);
+  return schemas;
 }

@@ -8,6 +8,7 @@ import {
   transformTypes,
   getImportPath,
   transformTypesOptionsSchema,
+  getAllSchemas,
 } from './lib';
 import { logger } from './lib/logger';
 
@@ -45,28 +46,18 @@ export const supabaseToZodOptionsSchema = transformTypesOptionsSchema
 
 export type SupabaseToZodOptions = z.infer<typeof supabaseToZodOptionsSchema>;
 
-async function collectTypes(inputPath: string, opts: SupabaseToZodOptions) {
-  logger.info('Reading input file...', '📦');
-  const sourceText = await fs.readFile(inputPath, 'utf-8');
-
+async function collectTypes(
+  sourceText: string,
+  opts: Omit<SupabaseToZodOptions, 'schema'> & { schema: string },
+) {
   logger.info('Transforming types...', '🔄');
 
-  const allParsedTypes = await Promise.all(
-    opts.schema.map(async (schema) => {
-      const schemaParsedTypes = transformTypes({
-        sourceText,
-        ...opts,
-        schema,
-      });
-      return schemaParsedTypes;
-    }),
-  );
+  const schemaParsedTypes = transformTypes({
+    sourceText,
+    ...opts,
+  });
 
-  const combinedParsedTypes = allParsedTypes.join('\n\n');
-
-  logger.debug(`Options: ${JSON.stringify({ sourceText, ...opts }, null, 2)}`);
-
-  return combinedParsedTypes;
+  return schemaParsedTypes;
 }
 
 export default async function supabaseToZod(opts: SupabaseToZodOptions) {
@@ -75,7 +66,25 @@ export default async function supabaseToZod(opts: SupabaseToZodOptions) {
   const inputPath = join(process.cwd(), opts.input);
   const outputPath = join(process.cwd(), opts.output);
 
-  const parsedTypes = await collectTypes(inputPath, opts);
+  logger.info('Reading input file...', '📦');
+  const sourceText = await fs.readFile(inputPath, 'utf-8');
+
+  if (!opts.schema.length) {
+    logger.warn('No schema specified, using all available schemas', '🤖');
+    opts.schema = getAllSchemas(sourceText);
+  }
+
+  logger.info(`Detected schemas: ${opts.schema.join(', ')}`, '📋');
+
+  let parsedTypes = '';
+
+  for (const schema of opts.schema) {
+    const schemaParsedTypes = await collectTypes(sourceText, {
+      ...opts,
+      schema,
+    });
+    parsedTypes += schemaParsedTypes;
+  }
 
   logger.info('Generating Zod schemas...', '📠');
 
