@@ -1,12 +1,21 @@
 {
   "name": "supazod",
   "description": "Generate Zod schemas from Supabase CLI generated types",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "license": "MIT",
   "type": "module",
   "main": "./dist/index.js",
   "source": "./src/index.ts",
   "types": "./dist/index.d.ts",
+  "homepage": "https://github.com/dohooo/supazod",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/dohooo/supazod.git"
+  },
+  "author": {
+    "name": "Caspian",
+    "url": "https://github.com/dohooo"
+  },
   "files": [
     "dist/**"
   ],
@@ -47,9 +56,5 @@
     "semantic-release": "^23.0.2",
     "ts-node": "^10.9.2",
     "tsup": "8.0.1"
-  },
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/dohooo/supazod.git"
   }
 }
