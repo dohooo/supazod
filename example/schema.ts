@@ -2,8 +2,6 @@
 import { z } from "zod";
 import { Json } from "./types";
 
-const propertyKeySchema = z.union([z.string(), z.number(), z.never()]);
-
 export const jsonSchema: z.ZodSchema<Json> = z.lazy(() =>
   z
     .union([

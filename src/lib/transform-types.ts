@@ -442,11 +442,6 @@ function formatOutput(collector: TypeCollector, schema: string): string {
 
   let parsedTypes = `${enumTypes}\n\n${otherTypes}`;
 
-  const builtinTypes = ['PropertyKey'];
-  for (const typeName of builtinTypes) {
-    parsedTypes = `${getBuiltinTypeDefinition(typeName)}\n${parsedTypes}`;
-  }
-
   for (const {
     name,
     formattedName,
