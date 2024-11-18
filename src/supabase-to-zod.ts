@@ -1,5 +1,5 @@
 import fs from 'node:fs/promises';
-import { join } from 'node:path';
+import { isAbsolute, join } from 'node:path';
 import prettier from 'prettier';
 import { generate } from 'ts-to-zod';
 import { z } from 'zod';
@@ -68,10 +68,33 @@ async function collectTypes(
 }
 
 export default async function supabaseToZod(opts: SupabaseToZodOptions) {
+  const result = await generateContent(opts);
+
+  if (!result) {
+    logger.error('Failed to generate schemas', '❌');
+    return;
+  }
+
+  logger.info('Writing schema file...', '💾');
+  await fs.writeFile(opts.output, result.formatterSchemasFileContent);
+
+  if (opts.typesOutput && result.formatterTypesFileContent) {
+    logger.info('Writing types file...', '📝');
+    await fs.writeFile(opts.typesOutput, result.formatterTypesFileContent);
+  }
+
+  logger.info('Successfully generated Zod schemas!', '✅');
+}
+
+export async function generateContent(opts: SupabaseToZodOptions) {
   logger.setVerbose(opts.verbose || false);
 
-  const inputPath = join(process.cwd(), opts.input);
-  const outputPath = join(process.cwd(), opts.output);
+  const inputPath = isAbsolute(opts.input)
+    ? opts.input
+    : join(process.cwd(), opts.input);
+  const outputPath = isAbsolute(opts.output)
+    ? opts.output
+    : join(process.cwd(), opts.output);
 
   logger.info('Reading input file...', '📦');
   const sourceText = await fs.readFile(inputPath, 'utf-8');
@@ -118,36 +141,45 @@ export default async function supabaseToZod(opts: SupabaseToZodOptions) {
 
     const prettierConfig = await prettier.resolveConfig(process.cwd());
 
-    logger.info('Writing schema file...', '💾');
-    await fs.writeFile(
-      outputPath,
-      await prettier.format(zodSchemasFile, {
+    const rawSchemasFileContent = zodSchemasFile;
+    const formatterSchemasFileContent = await prettier.format(
+      rawSchemasFileContent,
+      {
         parser: 'babel-ts',
         ...prettierConfig,
-      }),
+      },
     );
 
     if (opts.typesOutput) {
       const typesOutputPath = join(process.cwd(), opts.typesOutput);
-      logger.info('Writing types file...', '📝');
 
       const zodSchemasImportPath = getImportPath(typesOutputPath, outputPath);
       let typesContent = getInferredTypes(zodSchemasImportPath);
 
       typesContent = transformTypeNames(typesContent, opts.typeNameTransformer);
 
-      await fs.writeFile(
-        typesOutputPath,
-        await prettier.format(typesContent, {
+      const rawTypesFileContent = typesContent;
+      const formatterTypesFileContent = await prettier.format(
+        rawTypesFileContent,
+        {
           parser: 'babel-ts',
           ...prettierConfig,
-        }),
+        },
       );
+
+      return {
+        rawSchemasFileContent,
+        rawTypesFileContent,
+        formatterSchemasFileContent,
+        formatterTypesFileContent,
+      };
     }
 
-    logger.info('Successfully generated Zod schemas!', '✅');
+    return {
+      rawSchemasFileContent,
+      formatterSchemasFileContent,
+    };
   } catch (error) {
-    logger.error(`Failed to generate schemas: ${error}`, '❌');
     throw new Error('Failed to generate schemas: ' + error);
   }
 }

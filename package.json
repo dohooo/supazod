@@ -32,7 +32,10 @@
     "lint:fix": "eslint src/** --fix",
     "format:write": "prettier --write \"src/**/*.{ts,tsx,md}\"",
     "format:check": "prettier --check \"src/**/*.{ts,tsx,md}\"",
-    "semantic-release": "semantic-release"
+    "semantic-release": "semantic-release",
+    "test": "vitest run",
+    "test:dev": "vitest",
+    "test:coverage": "vitest run --coverage"
   },
   "dependencies": {
     "case": "1.6.3",
@@ -55,6 +58,8 @@
     "eslint-config-universe": "^12.0.0",
     "semantic-release": "^23.0.2",
     "ts-node": "^10.9.2",
-    "tsup": "8.0.1"
+    "tsup": "8.0.1",
+    "vitest": "^1.3.1",
+    "@vitest/coverage-v8": "^1.3.1"
   }
 }
