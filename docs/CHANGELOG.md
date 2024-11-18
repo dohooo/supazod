@@ -1,3 +1,19 @@
+# 1.0.0 (2024-11-18)
+
+
+### Bug Fixes
+
+* remove extra schema suffix ([fd07785](https://github.com/dohooo/supazod/commit/fd077851f479f82b1157318f45cdfbcbe562e052))
+
+
+### Features
+
+* configure test ([f303f5b](https://github.com/dohooo/supazod/commit/f303f5b0a24e6bb9ad98a14f340f6cfa4fd005f0))
+* remove built in types ([1e79d88](https://github.com/dohooo/supazod/commit/1e79d886f0e00f58ba08cf8ec72863910ad59b57))
+* set all schemas as default if there is no schema specified ([cab6031](https://github.com/dohooo/supazod/commit/cab6031bc9de894db06dea8696628a88c8453b25))
+* support multiple specify schemas ([ba21069](https://github.com/dohooo/supazod/commit/ba2106991e3f33103a10aaac7fe83404ed713ffe))
+* types support ([0cae4af](https://github.com/dohooo/supazod/commit/0cae4afeefdf1cf578d55c4566f9be89ed6536a9))
+
 ## [1.0.7](https://github.com/psteinroe/supabase-to-zod/compare/v1.0.6...v1.0.7) (2024-06-26)
 
 
