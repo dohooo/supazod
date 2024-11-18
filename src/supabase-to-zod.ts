@@ -11,6 +11,8 @@ import {
   getAllSchemas,
 } from './lib';
 import { logger } from './lib/logger';
+import { transformTypeNames } from './lib/transform-type-names';
+import { defaultTypeNameTransformer } from './lib/transform-name-utils';
 
 const simplifiedJSDocTagSchema = z.object({
   name: z.string(),
@@ -43,6 +45,12 @@ export const supabaseToZodOptionsSchema = transformTypesOptionsSchema
     keepComments: z.boolean().optional().default(false),
     skipParseJSDoc: z.boolean().optional().default(false),
     verbose: z.boolean().optional().default(false),
+    typeNameTransformer: z
+      .function()
+      .args(z.string())
+      .returns(z.string())
+      .optional()
+      .default(() => defaultTypeNameTransformer),
   });
 
 export type SupabaseToZodOptions = z.infer<typeof supabaseToZodOptionsSchema>;
@@ -51,8 +59,6 @@ async function collectTypes(
   sourceText: string,
   opts: Omit<SupabaseToZodOptions, 'schema'> & { schema: string },
 ) {
-  logger.info('Transforming types...', '🔄');
-
   const schemaParsedTypes = transformTypes({
     sourceText,
     ...opts,
@@ -83,6 +89,7 @@ export default async function supabaseToZod(opts: SupabaseToZodOptions) {
 
   let parsedTypes = '';
 
+  logger.info('Transforming types...', '🔄');
   for (const schema of opts.schema) {
     const schemaParsedTypes = await collectTypes(sourceText, {
       ...opts,
@@ -125,7 +132,9 @@ export default async function supabaseToZod(opts: SupabaseToZodOptions) {
       logger.info('Writing types file...', '📝');
 
       const zodSchemasImportPath = getImportPath(typesOutputPath, outputPath);
-      const typesContent = getInferredTypes(zodSchemasImportPath);
+      let typesContent = getInferredTypes(zodSchemasImportPath);
+
+      typesContent = transformTypeNames(typesContent, opts.typeNameTransformer);
 
       await fs.writeFile(
         typesOutputPath,
