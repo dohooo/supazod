@@ -14,7 +14,7 @@ export const jsonSchema: z.ZodSchema<Json> = z.lazy(() =>
     .nullable(),
 );
 
-export const publicUserStatusSchemaSchema = z.union([
+export const publicUserStatusSchema = z.union([
   z.literal("ONLINE"),
   z.literal("OFFLINE"),
 ]);
@@ -24,7 +24,7 @@ export const publicUsersInsertSchemaSchema = z.object({
   data: jsonSchema.optional().nullable(),
   age_range: z.unknown().optional().nullable(),
   catchphrase: z.unknown().optional().nullable(),
-  status: publicUserStatusSchemaSchema.optional().nullable(),
+  status: publicUserStatusSchema.optional().nullable(),
 });
 
 export const publicUsersUpdateSchemaSchema = z.object({
@@ -32,7 +32,7 @@ export const publicUsersUpdateSchemaSchema = z.object({
   data: jsonSchema.optional().nullable(),
   age_range: z.unknown().optional().nullable(),
   catchphrase: z.unknown().optional().nullable(),
-  status: publicUserStatusSchemaSchema.optional().nullable(),
+  status: publicUserStatusSchema.optional().nullable(),
 });
 
 export const publicNonUpdatableViewRowSchemaSchema = z.object({
@@ -43,14 +43,9 @@ export const publicGetStatusArgsSchemaSchema = z.object({
   name_param: z.string(),
 });
 
-export const publicGetStatusReturnsSchemaSchema = publicUserStatusSchemaSchema;
+export const publicGetStatusReturnsSchemaSchema = publicUserStatusSchema;
 
 export const schemaBUserStatusSchema = z.union([
-  z.literal("ONLINE"),
-  z.literal("OFFLINE"),
-]);
-
-export const publicUserStatusSchema = z.union([
   z.literal("ONLINE"),
   z.literal("OFFLINE"),
 ]);
@@ -61,16 +56,18 @@ export const schemaBUsersRowSchemaSchema = z.object({
   status: publicUserStatusSchema.nullable(),
 });
 
-export const schemaBUserStatusSchemaSchema = z.union([
-  z.literal("ONLINE"),
-  z.literal("OFFLINE"),
-]);
+export const schemaBUsersInsertSchemaSchema = z.object({
+  username: z.string(),
+  age_range: z.unknown().optional().nullable(),
+  catchphrase: z.unknown().optional().nullable(),
+  status: schemaBUserStatusSchema.optional().nullable(),
+});
 
 export const schemaBUsersUpdateSchemaSchema = z.object({
   data: jsonSchema.optional().nullable(),
   age_range: z.unknown().optional().nullable(),
   catchphrase: z.unknown().optional().nullable(),
-  status: schemaBUserStatusSchemaSchema.optional().nullable(),
+  status: schemaBUserStatusSchema.optional().nullable(),
 });
 
 export const schemaBNonUpdatableViewRowSchemaSchema = z.object({
@@ -85,20 +82,12 @@ export const schemaBGetStatusArgsSchemaSchema = z.object({
   name_param: z.string(),
 });
 
-export const schemaBGetStatusReturnsSchemaSchema =
-  schemaBUserStatusSchemaSchema;
+export const schemaBGetStatusReturnsSchemaSchema = schemaBUserStatusSchema;
 
 export const publicUsersRowSchemaSchema = z.object({
   username: z.string(),
   data: jsonSchema.nullable(),
   age_range: z.unknown().nullable(),
   catchphrase: z.unknown().nullable(),
-  status: publicUserStatusSchemaSchema.nullable(),
-});
-
-export const schemaBUsersInsertSchemaSchema = z.object({
-  username: z.string(),
-  age_range: z.unknown().optional().nullable(),
-  catchphrase: z.unknown().optional().nullable(),
-  status: schemaBUserStatusSchemaSchema.optional().nullable(),
+  status: publicUserStatusSchema.nullable(),
 });

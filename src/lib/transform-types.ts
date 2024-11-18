@@ -273,6 +273,7 @@ function processTablesOrViews(
       if (!ts.isPropertySignature(tableNode)) return;
 
       const tableName = getNodeName(tableNode);
+      logger.debug(`Processing table/view: ${tableName}`, '📝');
       processTableOperations(tableNode, tableName, context);
     });
   });
@@ -293,6 +294,10 @@ function processTableOperations(
       operationNode.forEachChild((typeNode) => {
         if (ts.isTypeLiteralNode(typeNode) || ts.isTupleTypeNode(typeNode)) {
           const formattedName = `${toCamelCase([context.schema, tableName, operation])}Schema`;
+          logger.debug(
+            `Generated type name for table operation: ${formattedName}`,
+            '🏷️',
+          );
           const typeText = typeNode.getText(context.sourceFile);
           context.collector.typeStrings.push(
             `export type ${formattedName} = ${typeText}`,
@@ -310,11 +315,13 @@ function processEnums(
   visitTypeLiteralChild(node, (typeLiteral) => {
     typeLiteral.forEachChild((enumNode) => {
       const enumName = getNodeName(enumNode);
+      logger.debug(`Processing enum: ${enumName}`, '🔤');
       if (!ts.isPropertySignature(enumNode)) return;
 
       enumNode.forEachChild((typeNode) => {
         if (ts.isUnionTypeNode(typeNode) || ts.isLiteralTypeNode(typeNode)) {
-          const formattedName = `${toCamelCase([context.schema, enumName])}Schema`;
+          const formattedName = `${toCamelCase([context.schema, enumName])}`;
+          logger.debug(`Generated enum type name: ${formattedName}`, '🏷️');
           const typeText = typeNode.getText(context.sourceFile);
           context.collector.typeStrings.push(
             `export type ${formattedName} = ${typeText}`,

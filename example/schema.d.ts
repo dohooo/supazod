@@ -2,9 +2,7 @@
 import { z } from "zod";
 import * as generated from "./schema";
 export type Json = z.infer<typeof generated.jsonSchema>;
-export type PublicUserStatusSchema = z.infer<
-  typeof generated.publicUserStatusSchemaSchema
->;
+export type PublicUserstatus = z.infer<typeof generated.publicUserStatusSchema>;
 export type PublicUsersInsertSchema = z.infer<
   typeof generated.publicUsersInsertSchemaSchema
 >;
@@ -20,15 +18,14 @@ export type PublicGetStatusArgsSchema = z.infer<
 export type PublicGetStatusReturnsSchema = z.infer<
   typeof generated.publicGetStatusReturnsSchemaSchema
 >;
-export type SchemaBUserstatus = z.infer<
+export type SchemaBUserStatus = z.infer<
   typeof generated.schemaBUserStatusSchema
 >;
-export type PublicUserstatus = z.infer<typeof generated.publicUserStatusSchema>;
 export type SchemaBUsersRowSchema = z.infer<
   typeof generated.schemaBUsersRowSchemaSchema
 >;
-export type SchemaBUserStatusSchema = z.infer<
-  typeof generated.schemaBUserStatusSchemaSchema
+export type SchemaBUsersInsertSchema = z.infer<
+  typeof generated.schemaBUsersInsertSchemaSchema
 >;
 export type SchemaBUsersUpdateSchema = z.infer<
   typeof generated.schemaBUsersUpdateSchemaSchema
@@ -50,7 +47,4 @@ export type SchemaBGetStatusReturnsSchema = z.infer<
 >;
 export type PublicUsersRowSchema = z.infer<
   typeof generated.publicUsersRowSchemaSchema
->;
-export type SchemaBUsersInsertSchema = z.infer<
-  typeof generated.schemaBUsersInsertSchemaSchema
 >;
