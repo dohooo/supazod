@@ -1,3 +1,10 @@
+# [1.1.0](https://github.com/dohooo/supazod/compare/v1.0.1...v1.1.0) (2024-11-18)
+
+
+### Features
+
+* official release ([df052cf](https://github.com/dohooo/supazod/commit/df052cf10c508a6751b3b8791abe3d5e8ed7da9e))
+
 # 1.0.0 (2024-11-18)
 
 
