@@ -15,7 +15,11 @@ class Logger {
     this.verbose = verbose;
   }
 
-  private formatMessage(level: LogLevel, message: string, emoji?: string): string {
+  private formatMessage(
+    level: LogLevel,
+    message: string,
+    emoji?: string,
+  ): string {
     const timestamp = new Date().toISOString();
     return `${emoji || ''} [${timestamp}] [${level.toUpperCase()}] ${message}`;
   }
@@ -39,4 +43,4 @@ class Logger {
   }
 }
 
-export const logger = new Logger(); 
+export const logger = new Logger();

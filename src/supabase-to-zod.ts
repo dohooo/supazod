@@ -11,8 +11,8 @@ import {
   getAllSchemas,
 } from './lib';
 import { logger } from './lib/logger';
-import { transformTypeNames } from './lib/transform-type-names';
 import { defaultTypeNameTransformer } from './lib/transform-name-utils';
+import { transformTypeNames } from './lib/transform-type-names';
 
 const simplifiedJSDocTagSchema = z.object({
   name: z.string(),

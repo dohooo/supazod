@@ -39,13 +39,6 @@ export const transformTypesOptionsSchema = z.object({
 
 export type TransformTypesOptions = z.infer<typeof transformTypesOptionsSchema>;
 
-function getBuiltinTypeDefinition(typeName: string): string {
-  if (typeName === 'PropertyKey') {
-    return `type ${typeName} = string | number | never`;
-  }
-  return '';
-}
-
 interface TypeCollector {
   typeStrings: string[];
   enumNames: {

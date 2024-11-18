@@ -1,9 +1,9 @@
+import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { fileURLToPath } from 'url';
 import { describe, expect, it } from 'vitest';
 
 import { generateContent, supabaseToZodOptionsSchema } from './supabase-to-zod';
-import { readFileSync } from 'node:fs';
 
 const __dirname = fileURLToPath(new URL('.', import.meta.url));
 const EXAMPLE_DIR = join(__dirname, '../example');
