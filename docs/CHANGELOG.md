@@ -1,3 +1,10 @@
+## [1.1.1](https://github.com/dohooo/supazod/compare/v1.1.0...v1.1.1) (2024-11-18)
+
+
+### Performance Improvements
+
+* comments updated ([1efe678](https://github.com/dohooo/supazod/commit/1efe678878f582101e181fc0bbf9f42ae07447b6))
+
 # [1.1.0](https://github.com/dohooo/supazod/compare/v1.0.1...v1.1.0) (2024-11-18)
 
 
