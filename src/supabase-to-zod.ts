@@ -10,6 +10,7 @@ import {
   transformTypesOptionsSchema,
   getAllSchemas,
 } from './lib';
+import { replaceGeneratedComment } from './lib/comment-utils';
 import { logger } from './lib/logger';
 import { defaultTypeNameTransformer } from './lib/transform-name-utils';
 import { transformTypeNames } from './lib/transform-type-names';
@@ -139,11 +140,12 @@ export async function generateContent(opts: SupabaseToZodOptions) {
       getImportPath(outputPath, inputPath),
     );
 
+    const contentWithNewComment = replaceGeneratedComment(zodSchemasFile);
+
     const prettierConfig = await prettier.resolveConfig(process.cwd());
 
-    const rawSchemasFileContent = zodSchemasFile;
     const formatterSchemasFileContent = await prettier.format(
-      rawSchemasFileContent,
+      contentWithNewComment,
       {
         parser: 'babel-ts',
         ...prettierConfig,
@@ -158,9 +160,10 @@ export async function generateContent(opts: SupabaseToZodOptions) {
 
       typesContent = transformTypeNames(typesContent, opts.typeNameTransformer);
 
-      const rawTypesFileContent = typesContent;
+      const typesWithNewComment = replaceGeneratedComment(typesContent);
+
       const formatterTypesFileContent = await prettier.format(
-        rawTypesFileContent,
+        typesWithNewComment,
         {
           parser: 'babel-ts',
           ...prettierConfig,
@@ -168,15 +171,15 @@ export async function generateContent(opts: SupabaseToZodOptions) {
       );
 
       return {
-        rawSchemasFileContent,
-        rawTypesFileContent,
+        rawSchemasFileContent: contentWithNewComment,
+        rawTypesFileContent: typesWithNewComment,
         formatterSchemasFileContent,
         formatterTypesFileContent,
       };
     }
 
     return {
-      rawSchemasFileContent,
+      rawSchemasFileContent: contentWithNewComment,
       formatterSchemasFileContent,
     };
   } catch (error) {
