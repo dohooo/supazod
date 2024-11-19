@@ -1,3 +1,10 @@
+## [1.1.2](https://github.com/dohooo/supazod/compare/v1.1.1...v1.1.2) (2024-11-19)
+
+
+### Performance Improvements
+
+* remove user prettier settings support. ([279e9ee](https://github.com/dohooo/supazod/commit/279e9ee3f6d463ad697a07e94dfd0fa38b24e1a3))
+
 ## [1.1.1](https://github.com/dohooo/supazod/compare/v1.1.0...v1.1.1) (2024-11-18)
 
 
