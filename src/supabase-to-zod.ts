@@ -142,13 +142,10 @@ export async function generateContent(opts: SupabaseToZodOptions) {
 
     const contentWithNewComment = replaceGeneratedComment(zodSchemasFile);
 
-    const prettierConfig = await prettier.resolveConfig(process.cwd());
-
     const formatterSchemasFileContent = await prettier.format(
       contentWithNewComment,
       {
         parser: 'babel-ts',
-        ...prettierConfig,
       },
     );
 
@@ -166,7 +163,6 @@ export async function generateContent(opts: SupabaseToZodOptions) {
         typesWithNewComment,
         {
           parser: 'babel-ts',
-          ...prettierConfig,
         },
       );
 
