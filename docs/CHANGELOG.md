@@ -1,3 +1,10 @@
+## [1.2.2](https://github.com/dohooo/supazod/compare/v1.2.1...v1.2.2) (2025-02-13)
+
+
+### Bug Fixes
+
+* the types naming is incorrect ([74213ae](https://github.com/dohooo/supazod/commit/74213ae164011af101cdf8f451a31f3796c6e1e9))
+
 ## [1.2.1](https://github.com/dohooo/supazod/compare/v1.2.0...v1.2.1) (2025-02-13)
 
 
