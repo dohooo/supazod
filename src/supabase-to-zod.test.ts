@@ -129,7 +129,7 @@ describe('supazod', () => {
        */
 
       import { z } from "zod";
-      import { Json } from "./types";
+      import { type Json } from "./types";
 
       export const jsonSchema: z.ZodSchema<Json> = z.lazy(() => z.union([z.string(), z.number(), z.boolean(), z.record(jsonSchema), z.array(jsonSchema)]).nullable());
 
@@ -315,7 +315,7 @@ describe('supazod', () => {
        */
 
       import { z } from "zod";
-      import { Json } from "./types";
+      import { type Json } from "./types";
 
       export const jsonSchema: z.ZodSchema<Json> = z.lazy(() => z.union([z.string(), z.number(), z.boolean(), z.record(jsonSchema), z.array(jsonSchema)]).nullable());
 
