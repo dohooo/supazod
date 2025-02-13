@@ -1,3 +1,10 @@
+# [1.2.0](https://github.com/dohooo/supazod/compare/v1.1.2...v1.2.0) (2025-02-13)
+
+
+### Features
+
+* upgrade ts-to-zod ([a50c644](https://github.com/dohooo/supazod/commit/a50c644f80c8d7a03773ddaa0bb8480a477f40ab))
+
 ## [1.1.2](https://github.com/dohooo/supazod/compare/v1.1.1...v1.1.2) (2024-11-19)
 
 
