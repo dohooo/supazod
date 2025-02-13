@@ -55,6 +55,7 @@ describe('supazod', () => {
                 catchphrase?: unknown | null;
                 status?: Database['public']['Enums']['user_status'] | null;
               };
+              Relationships: [];
             };
           };
           Views: {
@@ -241,6 +242,7 @@ describe('supazod', () => {
                 catchphrase?: unknown | null;
                 status?: Database['public']['Enums']['user_status'] | null;
               };
+              Relationships: [];
             };
           };
           Views: {
