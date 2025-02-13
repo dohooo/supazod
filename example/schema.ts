@@ -5,7 +5,7 @@
  */
 
 import { z } from "zod";
-import { Json } from "./types";
+import { type Json } from "./types";
 
 export const jsonSchema: z.ZodSchema<Json> = z.lazy(() =>
   z
