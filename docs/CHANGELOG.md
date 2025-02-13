@@ -1,3 +1,10 @@
+## [1.2.1](https://github.com/dohooo/supazod/compare/v1.2.0...v1.2.1) (2025-02-13)
+
+
+### Bug Fixes
+
+* handle empty array and tuple types in type transformation ([2ef1b08](https://github.com/dohooo/supazod/commit/2ef1b08677881da5a22b7d75e69145580c7e7214))
+
 # [1.2.0](https://github.com/dohooo/supazod/compare/v1.1.2...v1.2.0) (2025-02-13)
 
 
