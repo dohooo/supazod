@@ -40,6 +40,7 @@ describe('supazod', () => {
                 age_range: unknown | null;
                 catchphrase: unknown | null;
                 status: Database['public']['Enums']['user_status'] | null;
+                platform: Database["public"]["Enums"]["provider_slug"]
               };
               Insert: {
                 username: string;
@@ -73,6 +74,15 @@ describe('supazod', () => {
           };
           Enums: {
             user_status: 'ONLINE' | 'OFFLINE';
+            provider_slug:
+              | "github"
+              | "slack"
+              | "discord"
+              | "web"
+              | "linear"
+              | "jira"
+              | "memory"
+              | "dosu_app"
           };
         };
         schema_b: {
@@ -131,6 +141,8 @@ describe('supazod', () => {
 
       import { z } from "zod";
       import { type Json } from "./types";
+
+      export const publicProviderSlugSchema = z.union([z.literal("github"), z.literal("slack"), z.literal("discord"), z.literal("web"), z.literal("linear"), z.literal("jira"), z.literal("memory"), z.literal("dosu_app")]);
 
       export const jsonSchema: z.ZodSchema<Json> = z.lazy(() => z.union([z.string(), z.number(), z.boolean(), z.record(jsonSchema), z.array(jsonSchema)]).nullable());
 
@@ -169,7 +181,8 @@ describe('supazod', () => {
           data: jsonSchema.nullable(),
           age_range: z.unknown().nullable(),
           catchphrase: z.unknown().nullable(),
-          status: publicUserStatusSchema.nullable()
+          status: publicUserStatusSchema.nullable(),
+          platform: publicProviderSlugSchema
       });
       "
     `);
@@ -183,6 +196,7 @@ describe('supazod', () => {
 
       import { z } from "zod";
       import * as generated from "./../../../../../../example/schema";
+      export type PublicProviderSlug = z.infer<typeof generated.publicProviderSlugSchema>;
       export type Json = z.infer<typeof generated.jsonSchema>;
       export type PublicUserStatus = z.infer<typeof generated.publicUserStatusSchema>;
       export type PublicUsersInsertSchema = z.infer<typeof generated.publicUsersInsertSchemaSchema>;
@@ -190,7 +204,7 @@ describe('supazod', () => {
       export type PublicNonUpdatableViewRowSchema = z.infer<typeof generated.publicNonUpdatableViewRowSchemaSchema>;
       export type PublicGetStatusArgsSchema = z.infer<typeof generated.publicGetStatusArgsSchemaSchema>;
       export type PublicGetStatusReturnsSchema = z.infer<typeof generated.publicGetStatusReturnsSchemaSchema>;
-      export type SchemaBUserstatus = z.infer<typeof generated.schemaBUserStatusSchema>;
+      export type SchemaBUserStatus = z.infer<typeof generated.schemaBUserStatusSchema>;
       export type PublicUsersRowSchema = z.infer<typeof generated.publicUsersRowSchemaSchema>;
       "
     `);
@@ -227,6 +241,7 @@ describe('supazod', () => {
                 age_range: unknown | null;
                 catchphrase: unknown | null;
                 status: Database['public']['Enums']['user_status'] | null;
+                platform: Database["public"]["Enums"]["provider_slug"]
               };
               Insert: {
                 username: string;
@@ -260,6 +275,15 @@ describe('supazod', () => {
           };
           Enums: {
             user_status: 'ONLINE' | 'OFFLINE';
+            provider_slug:
+              | "github"
+              | "slack"
+              | "discord"
+              | "web"
+              | "linear"
+              | "jira"
+              | "memory"
+              | "dosu_app"
           };
         };
         schema_b: {
@@ -318,6 +342,8 @@ describe('supazod', () => {
 
       import { z } from "zod";
       import { type Json } from "./types";
+
+      export const publicProviderSlugSchema = z.union([z.literal("github"), z.literal("slack"), z.literal("discord"), z.literal("web"), z.literal("linear"), z.literal("jira"), z.literal("memory"), z.literal("dosu_app")]);
 
       export const jsonSchema: z.ZodSchema<Json> = z.lazy(() => z.union([z.string(), z.number(), z.boolean(), z.record(jsonSchema), z.array(jsonSchema)]).nullable());
 
@@ -390,7 +416,8 @@ describe('supazod', () => {
           data: jsonSchema.nullable(),
           age_range: z.unknown().nullable(),
           catchphrase: z.unknown().nullable(),
-          status: publicUserStatusSchema.nullable()
+          status: publicUserStatusSchema.nullable(),
+          platform: publicProviderSlugSchema
       });
       "
     `);
@@ -404,8 +431,9 @@ describe('supazod', () => {
 
       import { z } from "zod";
       import * as generated from "./../../../../../../example/schema";
+      export type PublicProviderSlug = z.infer<typeof generated.publicProviderSlugSchema>;
       export type Json = z.infer<typeof generated.jsonSchema>;
-      export type PublicUserstatus = z.infer<typeof generated.publicUserStatusSchema>;
+      export type PublicUserStatus = z.infer<typeof generated.publicUserStatusSchema>;
       export type PublicUsersInsertSchema = z.infer<typeof generated.publicUsersInsertSchemaSchema>;
       export type PublicUsersUpdateSchema = z.infer<typeof generated.publicUsersUpdateSchemaSchema>;
       export type PublicNonUpdatableViewRowSchema = z.infer<typeof generated.publicNonUpdatableViewRowSchemaSchema>;

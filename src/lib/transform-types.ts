@@ -308,20 +308,27 @@ function processEnums(
   visitTypeLiteralChild(node, (typeLiteral) => {
     typeLiteral.forEachChild((enumNode) => {
       const enumName = getNodeName(enumNode);
-      logger.debug(`Processing enum: ${enumName}`, '🔤');
       if (!ts.isPropertySignature(enumNode)) return;
 
       enumNode.forEachChild((typeNode) => {
         if (ts.isUnionTypeNode(typeNode) || ts.isLiteralTypeNode(typeNode)) {
-          const formattedName = `${toCamelCase([context.schema, enumName])}`;
-          logger.debug(`Generated enum type name: ${formattedName}`, '🏷️');
+          const formattedEnumName = context.formatters.enum(enumName);
+          const capitalizedSchema = context.schema
+            .split('_')
+            .map(
+              (part) =>
+                part.charAt(0).toUpperCase() + part.slice(1).toLowerCase(),
+            )
+            .join('');
+          const fullFormattedName = `${capitalizedSchema}${formattedEnumName}`;
+
           const typeText = typeNode.getText(context.sourceFile);
           context.collector.typeStrings.push(
-            `export type ${formattedName} = ${typeText}`,
+            `export type ${fullFormattedName} = ${typeText}`,
           );
           context.collector.enumNames.push({
             name: enumName,
-            formattedName,
+            formattedName: fullFormattedName,
             schema: context.schema,
           });
         }
@@ -476,17 +483,36 @@ function replaceTypeReferences(
   name: string,
   formattedName: string,
 ): string {
-  const doubleQuotePattern = `Database["${schema}"]["${category}"]["${name}"]`;
-  const singleQuotePattern = `Database['${schema}']['${category}']['${name}']`;
+  const capitalizedSchema = schema
+    .split('_')
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1).toLowerCase())
+    .join('');
+  const formattedEnumName = toCamelCase([name]).replace(/_/g, '');
+  const standardizedName = `${capitalizedSchema}${formattedEnumName}`;
+
+  const patterns = [
+    `Database["${schema}"]["${category}"]["${name}"]`,
+    `Database['${schema}']['${category}']['${name}']`,
+    `${schema}${category}${name}Schema`,
+    `${schema}${name}Schema`,
+    formattedName,
+    `${schema.toLowerCase()}${name}Schema`,
+    `${capitalizedSchema}${name}Schema`,
+    `${schema.replace('_', '')}${name}Schema`,
+    `${schema.toLowerCase().replace('_', '')}${name}Schema`,
+  ];
 
   return types
     .split('\n')
     .map((line) => {
-      if (line.includes(doubleQuotePattern)) {
-        return line.replace(doubleQuotePattern, formattedName);
-      }
-      if (line.includes(singleQuotePattern)) {
-        return line.replace(singleQuotePattern, formattedName);
+      for (const pattern of patterns) {
+        if (line.includes(pattern)) {
+          const regex = new RegExp(
+            pattern.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'),
+            'g',
+          );
+          return line.replace(regex, standardizedName);
+        }
       }
       return line;
     })
@@ -494,24 +520,20 @@ function replaceTypeReferences(
 }
 
 function toCamelCase(parts: string[]): string {
-  if (parts[0] === 'schema') {
-    const schemaPrefix = `schema${parts[1].toUpperCase()}`;
-    const rest = parts
-      .slice(2)
-      .map((word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
-      .join('');
-    return schemaPrefix + rest;
-  }
-
   return parts
     .map((word, index) => {
       const subParts = word.split('_');
       return subParts
-        .map((subWord, subIndex) =>
-          index === 0 && subIndex === 0
-            ? subWord.toLowerCase()
-            : subWord.charAt(0).toUpperCase() + subWord.slice(1).toLowerCase(),
-        )
+        .map((subWord, subIndex) => {
+          if (index === 0 && subIndex === 0) {
+            return (
+              subWord.charAt(0).toUpperCase() + subWord.slice(1).toLowerCase()
+            );
+          }
+          return (
+            subWord.charAt(0).toUpperCase() + subWord.slice(1).toLowerCase()
+          );
+        })
         .join('');
     })
     .join('');

@@ -16,6 +16,7 @@ export type Database = {
           age_range: unknown | null;
           catchphrase: unknown | null;
           status: Database['public']['Enums']['user_status'] | null;
+          platform: Database["public"]["Enums"]["provider_slug"]
         };
         Insert: {
           username: string;
@@ -49,6 +50,15 @@ export type Database = {
     };
     Enums: {
       user_status: 'ONLINE' | 'OFFLINE';
+      provider_slug:
+        | "github"
+        | "slack"
+        | "discord"
+        | "web"
+        | "linear"
+        | "jira"
+        | "memory"
+        | "dosu_app"
     };
   };
   schema_b: {

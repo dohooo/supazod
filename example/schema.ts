@@ -7,6 +7,17 @@
 import { z } from "zod";
 import { type Json } from "./types";
 
+export const publicProviderSlugSchema = z.union([
+  z.literal("github"),
+  z.literal("slack"),
+  z.literal("discord"),
+  z.literal("web"),
+  z.literal("linear"),
+  z.literal("jira"),
+  z.literal("memory"),
+  z.literal("dosu_app"),
+]);
+
 export const jsonSchema: z.ZodSchema<Json> = z.lazy(() =>
   z
     .union([
@@ -95,4 +106,5 @@ export const publicUsersRowSchemaSchema = z.object({
   age_range: z.unknown().nullable(),
   catchphrase: z.unknown().nullable(),
   status: publicUserStatusSchema.nullable(),
+  platform: publicProviderSlugSchema,
 });

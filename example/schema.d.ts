@@ -6,8 +6,11 @@
 
 import { z } from "zod";
 import * as generated from "./schema";
+export type PublicProviderSlug = z.infer<
+  typeof generated.publicProviderSlugSchema
+>;
 export type Json = z.infer<typeof generated.jsonSchema>;
-export type PublicUserstatus = z.infer<typeof generated.publicUserStatusSchema>;
+export type PublicUserStatus = z.infer<typeof generated.publicUserStatusSchema>;
 export type PublicUsersInsertSchema = z.infer<
   typeof generated.publicUsersInsertSchemaSchema
 >;
