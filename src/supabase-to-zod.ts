@@ -2,6 +2,7 @@ import fs from 'node:fs/promises';
 import { isAbsolute, join } from 'node:path';
 import prettier from 'prettier';
 import { generate } from 'ts-to-zod';
+import ts from 'typescript';
 import { z } from 'zod';
 
 import {
@@ -60,8 +61,62 @@ async function collectTypes(
   sourceText: string,
   opts: Omit<SupabaseToZodOptions, 'schema'> & { schema: string },
 ) {
-  const schemaParsedTypes = transformTypes({
+  const sourceFile = ts.createSourceFile(
+    'temp.ts',
     sourceText,
+    ts.ScriptTarget.Latest,
+    true,
+  );
+
+  function transform(context: ts.TransformationContext) {
+    return (node: ts.Node): ts.Node => {
+      // Convert empty array types to unknown[]
+      // This transformation handles two cases:
+      // 1. Empty array type `[]`
+      // 2. Empty tuple type `[]` (represented as TupleType in TypeScript AST)
+      //
+      // Examples:
+      // - Relationships: [] -> Relationships: unknown[]
+      // - EmptyList: [] -> EmptyList: unknown[]
+      if (
+        ts.isPropertySignature(node) &&
+        node.type &&
+        // Case 1: Check for empty array type
+        ((ts.isArrayTypeNode(node.type) &&
+          (!node.type.elementType ||
+            node.type.elementType.kind === ts.SyntaxKind.LastTypeNode)) ||
+          // Case 2: Check for empty tuple type
+          (node.type.kind === ts.SyntaxKind.TupleType &&
+            (node.type as ts.TupleTypeNode).elements.length === 0))
+      ) {
+        // Create new property signature with type unknown[]
+        return ts.factory.updatePropertySignature(
+          node,
+          node.modifiers,
+          node.name,
+          node.questionToken,
+          ts.factory.createArrayTypeNode(
+            ts.factory.createKeywordTypeNode(ts.SyntaxKind.UnknownKeyword),
+          ),
+        );
+      }
+      return ts.visitEachChild(node, transform(context), context);
+    };
+  }
+
+  const result = ts.transform(sourceFile, [transform]);
+  const transformedSourceFile = result.transformed[0];
+  const printer = ts.createPrinter({ newLine: ts.NewLineKind.LineFeed });
+  const processedSourceText = printer.printNode(
+    ts.EmitHint.Unspecified,
+    transformedSourceFile,
+    sourceFile,
+  );
+
+  result.dispose();
+
+  const schemaParsedTypes = transformTypes({
+    sourceText: processedSourceText,
     ...opts,
   });
 

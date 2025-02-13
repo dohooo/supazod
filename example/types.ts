@@ -31,6 +31,7 @@ export type Database = {
           catchphrase?: unknown | null;
           status?: Database['public']['Enums']['user_status'] | null;
         };
+        Relationships: [];
       };
     };
     Views: {
