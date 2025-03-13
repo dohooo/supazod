@@ -449,6 +449,8 @@ function formatOutput(collector: TypeCollector, schema: string): string {
 
   let parsedTypes = `${enumTypes}\n\n${otherTypes}`;
 
+  parsedTypes = replaceTableOperationReferences(parsedTypes);
+
   for (const {
     name,
     formattedName,
@@ -580,4 +582,16 @@ export function getAllSchemas(sourceText: string): string[] {
   }
 
   return schemas;
+}
+
+function replaceTableOperationReferences(typeString: string): string {
+  const regex =
+    /Database\["(\w+)"\]\["(Tables|Views)"\]\["(\w+)"\]\["(\w+)"\]/g;
+  return typeString.replace(
+    regex,
+    (match, schema, category, name, operation) => {
+      const formattedName = toCamelCase([schema, name, operation]) + 'Schema';
+      return formattedName;
+    },
+  );
 }
