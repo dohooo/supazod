@@ -1,7 +1,7 @@
 {
   "name": "supazod",
   "description": "Generate Zod schemas from Supabase CLI generated types",
-  "version": "1.2.2",
+  "version": "1.2.3",
   "license": "MIT",
   "type": "module",
   "main": "./dist/index.js",

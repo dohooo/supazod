@@ -1,3 +1,10 @@
+## [1.2.3](https://github.com/dohooo/supazod/compare/v1.2.2...v1.2.3) (2025-03-13)
+
+
+### Bug Fixes
+
+* **cli:** resolve table type reference in schema generation ([dd56738](https://github.com/dohooo/supazod/commit/dd56738bb13d2ccb089e340edcc6cfdb37ead37d))
+
 ## [1.2.2](https://github.com/dohooo/supazod/compare/v1.2.1...v1.2.2) (2025-02-13)
 
 
