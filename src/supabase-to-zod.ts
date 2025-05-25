@@ -14,7 +14,10 @@ import {
 import { replaceGeneratedComment } from './lib/comment-utils';
 import { logger } from './lib/logger';
 import { defaultTypeNameTransformer } from './lib/transform-name-utils';
-import { transformTypeNames } from './lib/transform-type-names';
+import {
+  transformTypeNames,
+  transformTypeNamesStripSchema,
+} from './lib/transform-type-names';
 
 const simplifiedJSDocTagSchema = z.object({
   name: z.string(),
@@ -132,11 +135,26 @@ export default async function supabaseToZod(opts: SupabaseToZodOptions) {
   }
 
   logger.info('Writing schema file...', '💾');
-  await fs.writeFile(opts.output, result.formatterSchemasFileContent);
-
-  if (opts.typesOutput && result.formatterTypesFileContent) {
-    logger.info('Writing types file...', '📝');
-    await fs.writeFile(opts.typesOutput, result.formatterTypesFileContent);
+  let wroteTypesToSeparateFile = false;
+  if (opts.typesOutput) {
+    try {
+      // Check if file exists
+      await fs.access(opts.typesOutput);
+      if (result.formatterTypesFileContent) {
+        logger.info('Writing types file...', '📝');
+        await fs.writeFile(opts.typesOutput, result.formatterTypesFileContent);
+        wroteTypesToSeparateFile = true;
+      }
+    } catch {
+      // File does not exist, fall through to append to schema file
+    }
+  }
+  if (!wroteTypesToSeparateFile && result.formatterTypesFileContent) {
+    // Append types to the schema file
+    const combinedContent = `${result.formatterSchemasFileContent}\n\n// ---- Inferred Types ----\n\n${result.formatterTypesFileContent}`;
+    await fs.writeFile(opts.output, combinedContent);
+  } else if (!result.formatterTypesFileContent) {
+    await fs.writeFile(opts.output, result.formatterSchemasFileContent);
   }
 
   logger.info('Successfully generated Zod schemas!', '✅');
@@ -206,21 +224,49 @@ export async function generateContent(opts: SupabaseToZodOptions) {
 
     if (opts.typesOutput) {
       const typesOutputPath = join(process.cwd(), opts.typesOutput);
-
       const zodSchemasImportPath = getImportPath(typesOutputPath, outputPath);
       let typesContent = getInferredTypes(zodSchemasImportPath);
-
-      typesContent = transformTypeNames(typesContent, opts.typeNameTransformer);
-
+      if ((opts as any).__useStripSchemaTransformer) {
+        typesContent = transformTypeNamesStripSchema(typesContent);
+      } else {
+        typesContent = transformTypeNames(
+          typesContent,
+          opts.typeNameTransformer,
+        );
+      }
       const typesWithNewComment = replaceGeneratedComment(typesContent);
-
       const formatterTypesFileContent = await prettier.format(
         typesWithNewComment,
         {
           parser: 'babel-ts',
         },
       );
-
+      return {
+        rawSchemasFileContent: contentWithNewComment,
+        rawTypesFileContent: typesWithNewComment,
+        formatterSchemasFileContent,
+        formatterTypesFileContent,
+      };
+    } else {
+      // Default: types will be appended to the schema file
+      const typesOutputPath = outputPath;
+      const zodSchemasImportPath = getImportPath(typesOutputPath, outputPath);
+      let typesContent = getInferredTypes(zodSchemasImportPath);
+      if ((opts as any).__useStripSchemaTransformer) {
+        typesContent = transformTypeNamesStripSchema(typesContent);
+      } else {
+        typesContent = transformTypeNames(
+          typesContent,
+          opts.typeNameTransformer,
+        );
+      }
+      const typesWithNewComment = replaceGeneratedComment(typesContent);
+      const formatterTypesFileContent = await prettier.format(
+        typesWithNewComment,
+        {
+          parser: 'babel-ts',
+        },
+      );
       return {
         rawSchemasFileContent: contentWithNewComment,
         rawTypesFileContent: typesWithNewComment,
@@ -228,11 +274,6 @@ export async function generateContent(opts: SupabaseToZodOptions) {
         formatterTypesFileContent,
       };
     }
-
-    return {
-      rawSchemasFileContent: contentWithNewComment,
-      formatterSchemasFileContent,
-    };
   } catch (error) {
     throw new Error('Failed to generate schemas: ' + error);
   }

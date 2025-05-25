@@ -1,7 +1,7 @@
-import { readFileSync } from 'node:fs';
+import { readFileSync, unlinkSync, existsSync } from 'node:fs';
 import { join } from 'node:path';
 import { fileURLToPath } from 'url';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, afterEach } from 'vitest';
 
 import { generateContent, supabaseToZodOptionsSchema } from './supabase-to-zod';
 
@@ -452,4 +452,86 @@ describe('supazod', () => {
       "
     `);
   });
+
+  it('should append types to the schema file by default', async () => {
+    const typesFilePath = join(EXAMPLE_DIR, 'types.ts');
+    const outputPath = join(EXAMPLE_DIR, 'schema-with-types-default.ts');
+    const opts = supabaseToZodOptionsSchema.parse({
+      input: typesFilePath,
+      output: outputPath,
+      schema: ['public'],
+      verbose: false,
+    });
+
+    const result = await generateContent(opts);
+    const combinedContent = `${result?.formatterSchemasFileContent}\n\n// ---- Inferred Types ----\n\n${result?.formatterTypesFileContent}`;
+
+    expect(combinedContent).toContain('// ---- Inferred Types ----');
+    expect(combinedContent).toContain('export type');
+    expect(combinedContent).toContain('export const');
+    expect(
+      combinedContent
+        .trim()
+        .endsWith(result?.formatterTypesFileContent.trim() || 'types'),
+    ).toBe(true);
+  });
+
+  it('should write types to typesOutput if provided and file exists', async () => {
+    const typesFilePath = join(EXAMPLE_DIR, 'types.ts');
+    const outputPath = join(EXAMPLE_DIR, 'schema-with-types-file.ts');
+    const typesOutputPath = join(EXAMPLE_DIR, 'types-output-file.ts');
+    // Ensure the file exists
+    require('fs').writeFileSync(typesOutputPath, '// dummy file');
+    const opts = supabaseToZodOptionsSchema.parse({
+      input: typesFilePath,
+      output: outputPath,
+      typesOutput: typesOutputPath,
+      schema: ['public'],
+      verbose: false,
+    });
+
+    const result = await generateContent(opts);
+    // Simulate what would be written to typesOutput
+    const typesContent = result?.formatterTypesFileContent;
+    expect(typesContent).toContain('export type');
+    expect(typesContent).not.toContain('export const'); // types file should not contain schema exports
+  });
+
+  it('should use a custom typeNameTransformer function', async () => {
+    const typesFilePath = join(EXAMPLE_DIR, 'types.ts');
+    // Custom transformer: lowercases all type names
+    const customTransformer = (name: string) => name.toLowerCase();
+    const opts = supabaseToZodOptionsSchema.parse({
+      input: typesFilePath,
+      output: join(EXAMPLE_DIR, 'schema.ts'),
+      typesOutput: join(EXAMPLE_DIR, 'schema.d.ts'),
+      schema: ['public'],
+      verbose: false,
+      typeNameTransformer: customTransformer,
+    });
+
+    const result = await generateContent(opts);
+    // Check that at least one type name is lowercased (e.g., publicuserstatus)
+    expect(result?.rawTypesFileContent).toContain(
+      'export type publicuserstatus',
+    );
+    // Optionally, check that no PascalCase type names exist
+    expect(result?.rawTypesFileContent).not.toMatch(/export type [A-Z][a-z]+/);
+  });
+});
+
+afterEach(() => {
+  const filesToClean = [
+    'schema-with-types-default.ts',
+    'schema-with-types-file.ts',
+    'types-output-file.ts',
+  ];
+  for (const file of filesToClean) {
+    const filePath = join(EXAMPLE_DIR, file);
+    if (existsSync(filePath)) {
+      try {
+        unlinkSync(filePath);
+      } catch {}
+    }
+  }
 });

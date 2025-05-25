@@ -2,10 +2,12 @@
 
 import { program } from 'commander';
 import fsSync from 'node:fs';
-import { join } from 'node:path';
+import { join, isAbsolute } from 'node:path';
 import * as url from 'url';
 
 import supabaseToZod, { supabaseToZodOptionsSchema } from './supabase-to-zod';
+import { transformTypeNamesStripSchema } from './lib/transform-type-names';
+import { defaultTypeNameTransformer } from './lib/transform-name-utils';
 
 const __dirname = url.fileURLToPath(new URL('.', import.meta.url));
 const defaultPackageJsonPath = join(__dirname, 'package.json');
@@ -24,22 +26,71 @@ program
   .option('-o, --output <output>', 'Path to the output file')
   .option(
     '-t, --types-output [types-output]',
-    'Path to output inferred types file',
+    'Path to output inferred types file (if not provided, types are appended to the schema file; if provided and file exists, types are written there)',
   )
   .option('-s, --schema [schema]', 'Specify schemas (comma-separated)', '')
   .option('-v, --verbose', 'Enable verbose logging')
+  .option(
+    '-n, --type-name-transformer <transformer>',
+    "Type name transformer to use: 'default' (default), 'strip-schema', or a path to a JS file exporting a transformer function",
+    'default',
+  )
   .parse(process.argv);
 
-const opts = supabaseToZodOptionsSchema.parse({
-  ...program.opts(),
-  schema: program
-    .opts()
-    .schema.split(',')
-    .map((s: string) => s.trim())
-    .filter((s: string) => s.length),
-});
+const cliOpts = program.opts();
 
 (async () => {
+  // Parse options
+  const opts = supabaseToZodOptionsSchema.parse({
+    ...cliOpts,
+    schema: (cliOpts.schema as string)
+      .split(',')
+      .map((s: string) => s.trim())
+      .filter((s: string) => s.length),
+  });
+
+  // Resolve the transformer function
+  let transformerFn = defaultTypeNameTransformer;
+  if (cliOpts.typeNameTransformer === 'strip-schema') {
+    // Use built-in strip-schema transformer
+    transformerFn = (name: string) => {
+      // Use the same logic as transformTypeNamesStripSchema, but as a function
+      // Remove leading capitalized word (schema) if followed by another capital
+      return name.replace(/^[A-Z][a-z0-9]+(?=[A-Z])/, '');
+    };
+  } else if (
+    cliOpts.typeNameTransformer !== 'default' &&
+    cliOpts.typeNameTransformer.trim() !== ''
+  ) {
+    // Assume it's a path to a JS file
+    let transformerPath = cliOpts.typeNameTransformer;
+    if (!isAbsolute(transformerPath)) {
+      transformerPath = join(process.cwd(), transformerPath);
+    }
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-var-requires
+      const imported = require(transformerPath);
+      if (typeof imported === 'function') {
+        transformerFn = imported;
+      } else if (imported && typeof imported.default === 'function') {
+        transformerFn = imported.default;
+      } else {
+        console.error(
+          `The file at ${transformerPath} does not export a function. Please export a function as module.exports = ... or export default ...`,
+        );
+        process.exit(1);
+      }
+    } catch (err) {
+      console.error(
+        `Failed to import transformer from ${transformerPath}:`,
+        err,
+      );
+      process.exit(1);
+    }
+  }
+
+  opts.typeNameTransformer = transformerFn;
+
   try {
     await supabaseToZod(opts);
     process.exit();
