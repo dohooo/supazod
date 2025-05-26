@@ -1,3 +1,23 @@
+# [2.0.0](https://github.com/dohooo/supazod/compare/v1.2.3...v2.0.0) (2025-05-26)
+
+
+* feat!: fix duplicate Schema naming and add configurable naming system ([0ea9cf1](https://github.com/dohooo/supazod/commit/0ea9cf1202c7801f9404929d2d97b70dcee61d04)), closes [#3](https://github.com/dohooo/supazod/issues/3)
+
+
+### BREAKING CHANGES
+
+* Schema names no longer have duplicate 'Schema' suffixes.
+Generated schemas like 'publicUsersInsertSchemaSchema' are now 'publicUsersInsertSchema'.
+TypeScript types also remove 'Schema' suffix. Added configurable naming patterns
+with type-safe configuration system.
+
+- Fix: Remove duplicate 'Schema' suffix in generated schema names
+- Add: Type-safe configurable naming system with patterns
+- Add: Support for multiple config file formats (.ts, .js, .json)
+- Add: CLI arguments for naming configuration
+- Add: Full TypeScript IntelliSense support for config
+- Add: Migration documentation for breaking changes
+
 ## [1.2.3](https://github.com/dohooo/supazod/compare/v1.2.2...v1.2.3) (2025-03-13)
 
 
