@@ -10,6 +10,8 @@ import {
   getImportPath,
   transformTypesOptionsSchema,
   getAllSchemas,
+  namingConfigSchema,
+  defaultNamingConfig,
 } from './lib';
 import { replaceGeneratedComment } from './lib/comment-utils';
 import { logger } from './lib/logger';
@@ -53,6 +55,7 @@ export const supabaseToZodOptionsSchema = transformTypesOptionsSchema
       .returns(z.string())
       .optional()
       .default(() => defaultTypeNameTransformer),
+    namingConfig: namingConfigSchema.optional().default(defaultNamingConfig),
   });
 
 export type SupabaseToZodOptions = z.infer<typeof supabaseToZodOptionsSchema>;

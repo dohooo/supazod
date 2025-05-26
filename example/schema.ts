@@ -35,7 +35,7 @@ export const publicUserStatusSchema = z.union([
   z.literal("OFFLINE"),
 ]);
 
-export const publicUsersInsertSchemaSchema = z.object({
+export const publicUsersInsertSchema = z.object({
   username: z.string(),
   data: jsonSchema.optional().nullable(),
   age_range: z.unknown().optional().nullable(),
@@ -43,7 +43,7 @@ export const publicUsersInsertSchemaSchema = z.object({
   status: publicUserStatusSchema.optional().nullable(),
 });
 
-export const publicUsersUpdateSchemaSchema = z.object({
+export const publicUsersUpdateSchema = z.object({
   username: z.string().optional(),
   data: jsonSchema.optional().nullable(),
   age_range: z.unknown().optional().nullable(),
@@ -51,56 +51,56 @@ export const publicUsersUpdateSchemaSchema = z.object({
   status: publicUserStatusSchema.optional().nullable(),
 });
 
-export const publicNonUpdatableViewRowSchemaSchema = z.object({
+export const publicNonUpdatableViewRowSchema = z.object({
   username: z.string().nullable(),
 });
 
-export const publicGetStatusArgsSchemaSchema = z.object({
+export const publicGetStatusArgsSchema = z.object({
   name_param: z.string(),
 });
 
-export const publicGetStatusReturnsSchemaSchema = publicUserStatusSchema;
+export const publicGetStatusReturnsSchema = publicUserStatusSchema;
 
 export const schemaBUserStatusSchema = z.union([
   z.literal("ONLINE"),
   z.literal("OFFLINE"),
 ]);
 
-export const schemaBUsersRowSchemaSchema = z.object({
+export const schemaBUsersRowSchema = z.object({
   username: z.string(),
   data: jsonSchema.nullable(),
   status: publicUserStatusSchema.nullable(),
 });
 
-export const schemaBUsersInsertSchemaSchema = z.object({
+export const schemaBUsersInsertSchema = z.object({
   username: z.string(),
   age_range: z.unknown().optional().nullable(),
   catchphrase: z.unknown().optional().nullable(),
   status: schemaBUserStatusSchema.optional().nullable(),
 });
 
-export const schemaBUsersUpdateSchemaSchema = z.object({
+export const schemaBUsersUpdateSchema = z.object({
   data: jsonSchema.optional().nullable(),
   age_range: z.unknown().optional().nullable(),
   catchphrase: z.unknown().optional().nullable(),
   status: schemaBUserStatusSchema.optional().nullable(),
 });
 
-export const schemaBNonUpdatableViewRowSchemaSchema = z.object({
+export const schemaBNonUpdatableViewRowSchema = z.object({
   username: z.string().nullable(),
 });
 
-export const schemaBGetDeploymentConfigSchemaArgsSchemaSchema = z.object({});
+export const schemaBGetDeploymentConfigSchemaArgsSchema = z.object({});
 
-export const schemaBGetDeploymentConfigSchemaReturnsSchemaSchema = jsonSchema;
+export const schemaBGetDeploymentConfigSchemaReturnsSchema = jsonSchema;
 
-export const schemaBGetStatusArgsSchemaSchema = z.object({
+export const schemaBGetStatusArgsSchema = z.object({
   name_param: z.string(),
 });
 
-export const schemaBGetStatusReturnsSchemaSchema = schemaBUserStatusSchema;
+export const schemaBGetStatusReturnsSchema = schemaBUserStatusSchema;
 
-export const publicUsersRowSchemaSchema = z.object({
+export const publicUsersRowSchema = z.object({
   username: z.string(),
   data: jsonSchema.nullable(),
   age_range: z.unknown().nullable(),

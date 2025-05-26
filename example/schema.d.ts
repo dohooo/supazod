@@ -11,48 +11,44 @@ export type PublicProviderSlug = z.infer<
 >;
 export type Json = z.infer<typeof generated.jsonSchema>;
 export type PublicUserStatus = z.infer<typeof generated.publicUserStatusSchema>;
-export type PublicUsersInsertSchema = z.infer<
-  typeof generated.publicUsersInsertSchemaSchema
+export type PublicUsersInsert = z.infer<
+  typeof generated.publicUsersInsertSchema
 >;
-export type PublicUsersUpdateSchema = z.infer<
-  typeof generated.publicUsersUpdateSchemaSchema
+export type PublicUsersUpdate = z.infer<
+  typeof generated.publicUsersUpdateSchema
 >;
-export type PublicNonUpdatableViewRowSchema = z.infer<
-  typeof generated.publicNonUpdatableViewRowSchemaSchema
+export type PublicNonUpdatableViewRow = z.infer<
+  typeof generated.publicNonUpdatableViewRowSchema
 >;
-export type PublicGetStatusArgsSchema = z.infer<
-  typeof generated.publicGetStatusArgsSchemaSchema
+export type PublicGetStatusArgs = z.infer<
+  typeof generated.publicGetStatusArgsSchema
 >;
-export type PublicGetStatusReturnsSchema = z.infer<
-  typeof generated.publicGetStatusReturnsSchemaSchema
+export type PublicGetStatusReturns = z.infer<
+  typeof generated.publicGetStatusReturnsSchema
 >;
 export type SchemaBUserStatus = z.infer<
   typeof generated.schemaBUserStatusSchema
 >;
-export type SchemaBUsersRowSchema = z.infer<
-  typeof generated.schemaBUsersRowSchemaSchema
+export type SchemaBUsersRow = z.infer<typeof generated.schemaBUsersRowSchema>;
+export type SchemaBUsersInsert = z.infer<
+  typeof generated.schemaBUsersInsertSchema
 >;
-export type SchemaBUsersInsertSchema = z.infer<
-  typeof generated.schemaBUsersInsertSchemaSchema
+export type SchemaBUsersUpdate = z.infer<
+  typeof generated.schemaBUsersUpdateSchema
 >;
-export type SchemaBUsersUpdateSchema = z.infer<
-  typeof generated.schemaBUsersUpdateSchemaSchema
+export type SchemaBNonUpdatableViewRow = z.infer<
+  typeof generated.schemaBNonUpdatableViewRowSchema
 >;
-export type SchemaBNonUpdatableViewRowSchema = z.infer<
-  typeof generated.schemaBNonUpdatableViewRowSchemaSchema
+export type SchemaBGetDeploymentConfigSchemaArgs = z.infer<
+  typeof generated.schemaBGetDeploymentConfigSchemaArgsSchema
 >;
-export type SchemaBGetDeploymentConfigSchemaArgsSchema = z.infer<
-  typeof generated.schemaBGetDeploymentConfigSchemaArgsSchemaSchema
+export type SchemaBGetDeploymentConfigSchemaReturns = z.infer<
+  typeof generated.schemaBGetDeploymentConfigSchemaReturnsSchema
 >;
-export type SchemaBGetDeploymentConfigSchemaReturnsSchema = z.infer<
-  typeof generated.schemaBGetDeploymentConfigSchemaReturnsSchemaSchema
+export type SchemaBGetStatusArgs = z.infer<
+  typeof generated.schemaBGetStatusArgsSchema
 >;
-export type SchemaBGetStatusArgsSchema = z.infer<
-  typeof generated.schemaBGetStatusArgsSchemaSchema
+export type SchemaBGetStatusReturns = z.infer<
+  typeof generated.schemaBGetStatusReturnsSchema
 >;
-export type SchemaBGetStatusReturnsSchema = z.infer<
-  typeof generated.schemaBGetStatusReturnsSchemaSchema
->;
-export type PublicUsersRowSchema = z.infer<
-  typeof generated.publicUsersRowSchemaSchema
->;
+export type PublicUsersRow = z.infer<typeof generated.publicUsersRowSchema>;
