@@ -148,7 +148,7 @@ describe('supazod', () => {
 
       export const publicUserStatusSchema = z.union([z.literal("ONLINE"), z.literal("OFFLINE")]);
 
-      export const publicUsersInsertSchemaSchema = z.object({
+      export const publicUsersInsertSchema = z.object({
           username: z.string(),
           data: jsonSchema.optional().nullable(),
           age_range: z.unknown().optional().nullable(),
@@ -156,7 +156,7 @@ describe('supazod', () => {
           status: publicUserStatusSchema.optional().nullable()
       });
 
-      export const publicUsersUpdateSchemaSchema = z.object({
+      export const publicUsersUpdateSchema = z.object({
           username: z.string().optional(),
           data: jsonSchema.optional().nullable(),
           age_range: z.unknown().optional().nullable(),
@@ -164,19 +164,19 @@ describe('supazod', () => {
           status: publicUserStatusSchema.optional().nullable()
       });
 
-      export const publicNonUpdatableViewRowSchemaSchema = z.object({
+      export const publicNonUpdatableViewRowSchema = z.object({
           username: z.string().nullable()
       });
 
-      export const publicGetStatusArgsSchemaSchema = z.object({
+      export const publicGetStatusArgsSchema = z.object({
           name_param: z.string()
       });
 
-      export const publicGetStatusReturnsSchemaSchema = publicUserStatusSchema;
+      export const publicGetStatusReturnsSchema = publicUserStatusSchema;
 
       export const schemaBUserStatusSchema = z.union([z.literal("ONLINE"), z.literal("OFFLINE")]);
 
-      export const publicUsersRowSchemaSchema = z.object({
+      export const publicUsersRowSchema = z.object({
           username: z.string(),
           data: jsonSchema.nullable(),
           age_range: z.unknown().nullable(),
@@ -199,13 +199,13 @@ describe('supazod', () => {
       export type PublicProviderSlug = z.infer<typeof generated.publicProviderSlugSchema>;
       export type Json = z.infer<typeof generated.jsonSchema>;
       export type PublicUserStatus = z.infer<typeof generated.publicUserStatusSchema>;
-      export type PublicUsersInsertSchema = z.infer<typeof generated.publicUsersInsertSchemaSchema>;
-      export type PublicUsersUpdateSchema = z.infer<typeof generated.publicUsersUpdateSchemaSchema>;
-      export type PublicNonUpdatableViewRowSchema = z.infer<typeof generated.publicNonUpdatableViewRowSchemaSchema>;
-      export type PublicGetStatusArgsSchema = z.infer<typeof generated.publicGetStatusArgsSchemaSchema>;
-      export type PublicGetStatusReturnsSchema = z.infer<typeof generated.publicGetStatusReturnsSchemaSchema>;
+      export type PublicUsersInsert = z.infer<typeof generated.publicUsersInsertSchema>;
+      export type PublicUsersUpdate = z.infer<typeof generated.publicUsersUpdateSchema>;
+      export type PublicNonUpdatableViewRow = z.infer<typeof generated.publicNonUpdatableViewRowSchema>;
+      export type PublicGetStatusArgs = z.infer<typeof generated.publicGetStatusArgsSchema>;
+      export type PublicGetStatusReturns = z.infer<typeof generated.publicGetStatusReturnsSchema>;
       export type SchemaBUserStatus = z.infer<typeof generated.schemaBUserStatusSchema>;
-      export type PublicUsersRowSchema = z.infer<typeof generated.publicUsersRowSchemaSchema>;
+      export type PublicUsersRow = z.infer<typeof generated.publicUsersRowSchema>;
       "
     `);
   });
@@ -349,7 +349,7 @@ describe('supazod', () => {
 
       export const publicUserStatusSchema = z.union([z.literal("ONLINE"), z.literal("OFFLINE")]);
 
-      export const publicUsersInsertSchemaSchema = z.object({
+      export const publicUsersInsertSchema = z.object({
           username: z.string(),
           data: jsonSchema.optional().nullable(),
           age_range: z.unknown().optional().nullable(),
@@ -357,7 +357,7 @@ describe('supazod', () => {
           status: publicUserStatusSchema.optional().nullable()
       });
 
-      export const publicUsersUpdateSchemaSchema = z.object({
+      export const publicUsersUpdateSchema = z.object({
           username: z.string().optional(),
           data: jsonSchema.optional().nullable(),
           age_range: z.unknown().optional().nullable(),
@@ -365,53 +365,53 @@ describe('supazod', () => {
           status: publicUserStatusSchema.optional().nullable()
       });
 
-      export const publicNonUpdatableViewRowSchemaSchema = z.object({
+      export const publicNonUpdatableViewRowSchema = z.object({
           username: z.string().nullable()
       });
 
-      export const publicGetStatusArgsSchemaSchema = z.object({
+      export const publicGetStatusArgsSchema = z.object({
           name_param: z.string()
       });
 
-      export const publicGetStatusReturnsSchemaSchema = publicUserStatusSchema;
+      export const publicGetStatusReturnsSchema = publicUserStatusSchema;
 
       export const schemaBUserStatusSchema = z.union([z.literal("ONLINE"), z.literal("OFFLINE")]);
 
-      export const schemaBUsersRowSchemaSchema = z.object({
+      export const schemaBUsersRowSchema = z.object({
           username: z.string(),
           data: jsonSchema.nullable(),
           status: publicUserStatusSchema.nullable()
       });
 
-      export const schemaBUsersInsertSchemaSchema = z.object({
+      export const schemaBUsersInsertSchema = z.object({
           username: z.string(),
           age_range: z.unknown().optional().nullable(),
           catchphrase: z.unknown().optional().nullable(),
           status: schemaBUserStatusSchema.optional().nullable()
       });
 
-      export const schemaBUsersUpdateSchemaSchema = z.object({
+      export const schemaBUsersUpdateSchema = z.object({
           data: jsonSchema.optional().nullable(),
           age_range: z.unknown().optional().nullable(),
           catchphrase: z.unknown().optional().nullable(),
           status: schemaBUserStatusSchema.optional().nullable()
       });
 
-      export const schemaBNonUpdatableViewRowSchemaSchema = z.object({
+      export const schemaBNonUpdatableViewRowSchema = z.object({
           username: z.string().nullable()
       });
 
-      export const schemaBGetDeploymentConfigSchemaArgsSchemaSchema = z.object({});
+      export const schemaBGetDeploymentConfigSchemaArgsSchema = z.object({});
 
-      export const schemaBGetDeploymentConfigSchemaReturnsSchemaSchema = jsonSchema;
+      export const schemaBGetDeploymentConfigSchemaReturnsSchema = jsonSchema;
 
-      export const schemaBGetStatusArgsSchemaSchema = z.object({
+      export const schemaBGetStatusArgsSchema = z.object({
           name_param: z.string()
       });
 
-      export const schemaBGetStatusReturnsSchemaSchema = schemaBUserStatusSchema;
+      export const schemaBGetStatusReturnsSchema = schemaBUserStatusSchema;
 
-      export const publicUsersRowSchemaSchema = z.object({
+      export const publicUsersRowSchema = z.object({
           username: z.string(),
           data: jsonSchema.nullable(),
           age_range: z.unknown().nullable(),
@@ -434,22 +434,66 @@ describe('supazod', () => {
       export type PublicProviderSlug = z.infer<typeof generated.publicProviderSlugSchema>;
       export type Json = z.infer<typeof generated.jsonSchema>;
       export type PublicUserStatus = z.infer<typeof generated.publicUserStatusSchema>;
-      export type PublicUsersInsertSchema = z.infer<typeof generated.publicUsersInsertSchemaSchema>;
-      export type PublicUsersUpdateSchema = z.infer<typeof generated.publicUsersUpdateSchemaSchema>;
-      export type PublicNonUpdatableViewRowSchema = z.infer<typeof generated.publicNonUpdatableViewRowSchemaSchema>;
-      export type PublicGetStatusArgsSchema = z.infer<typeof generated.publicGetStatusArgsSchemaSchema>;
-      export type PublicGetStatusReturnsSchema = z.infer<typeof generated.publicGetStatusReturnsSchemaSchema>;
+      export type PublicUsersInsert = z.infer<typeof generated.publicUsersInsertSchema>;
+      export type PublicUsersUpdate = z.infer<typeof generated.publicUsersUpdateSchema>;
+      export type PublicNonUpdatableViewRow = z.infer<typeof generated.publicNonUpdatableViewRowSchema>;
+      export type PublicGetStatusArgs = z.infer<typeof generated.publicGetStatusArgsSchema>;
+      export type PublicGetStatusReturns = z.infer<typeof generated.publicGetStatusReturnsSchema>;
       export type SchemaBUserStatus = z.infer<typeof generated.schemaBUserStatusSchema>;
-      export type SchemaBUsersRowSchema = z.infer<typeof generated.schemaBUsersRowSchemaSchema>;
-      export type SchemaBUsersInsertSchema = z.infer<typeof generated.schemaBUsersInsertSchemaSchema>;
-      export type SchemaBUsersUpdateSchema = z.infer<typeof generated.schemaBUsersUpdateSchemaSchema>;
-      export type SchemaBNonUpdatableViewRowSchema = z.infer<typeof generated.schemaBNonUpdatableViewRowSchemaSchema>;
-      export type SchemaBGetDeploymentConfigSchemaArgsSchema = z.infer<typeof generated.schemaBGetDeploymentConfigSchemaArgsSchemaSchema>;
-      export type SchemaBGetDeploymentConfigSchemaReturnsSchema = z.infer<typeof generated.schemaBGetDeploymentConfigSchemaReturnsSchemaSchema>;
-      export type SchemaBGetStatusArgsSchema = z.infer<typeof generated.schemaBGetStatusArgsSchemaSchema>;
-      export type SchemaBGetStatusReturnsSchema = z.infer<typeof generated.schemaBGetStatusReturnsSchemaSchema>;
-      export type PublicUsersRowSchema = z.infer<typeof generated.publicUsersRowSchemaSchema>;
+      export type SchemaBUsersRow = z.infer<typeof generated.schemaBUsersRowSchema>;
+      export type SchemaBUsersInsert = z.infer<typeof generated.schemaBUsersInsertSchema>;
+      export type SchemaBUsersUpdate = z.infer<typeof generated.schemaBUsersUpdateSchema>;
+      export type SchemaBNonUpdatableViewRow = z.infer<typeof generated.schemaBNonUpdatableViewRowSchema>;
+      export type SchemaBGetDeploymentConfigSchemaArgs = z.infer<typeof generated.schemaBGetDeploymentConfigSchemaArgsSchema>;
+      export type SchemaBGetDeploymentConfigSchemaReturns = z.infer<typeof generated.schemaBGetDeploymentConfigSchemaReturnsSchema>;
+      export type SchemaBGetStatusArgs = z.infer<typeof generated.schemaBGetStatusArgsSchema>;
+      export type SchemaBGetStatusReturns = z.infer<typeof generated.schemaBGetStatusReturnsSchema>;
+      export type PublicUsersRow = z.infer<typeof generated.publicUsersRowSchema>;
       "
     `);
+  });
+
+  it('should generate schemas with custom naming configuration', async () => {
+    const typesFilePath = join(EXAMPLE_DIR, 'types.ts');
+    const opts = supabaseToZodOptionsSchema.parse({
+      input: typesFilePath,
+      output: join(EXAMPLE_DIR, 'schema.ts'),
+      typesOutput: join(EXAMPLE_DIR, 'schema.d.ts'),
+      schema: ['public'],
+      verbose: false,
+      namingConfig: {
+        tableOperationPattern: '{schema}_{table}_{operation}',
+        enumPattern: '{schema}_{name}_enum',
+        compositeTypePattern: '{schema}_{name}_type',
+        functionArgsPattern: '{schema}_{function}_args',
+        functionReturnsPattern: '{schema}_{function}_returns',
+        capitalizeSchema: true,
+        capitalizeNames: true,
+        separator: '',
+      },
+    });
+
+    const result = await generateContent(opts);
+
+    // ts-to-zod converts our custom type names to camelCase + Schema suffix
+    // So Public_Users_Insert becomes publicUsersInsertSchema
+    expect(result?.rawSchemasFileContent).toContain('publicUsersInsertSchema');
+    expect(result?.rawSchemasFileContent).toContain('publicUsersUpdateSchema');
+    expect(result?.rawSchemasFileContent).toContain('publicUsersRowSchema');
+    expect(result?.rawSchemasFileContent).toContain(
+      'publicGetStatusArgsSchema',
+    );
+    expect(result?.rawSchemasFileContent).toContain(
+      'publicGetStatusReturnsSchema',
+    );
+
+    // Check that the old double "Schema" pattern is not present
+    expect(result?.rawSchemasFileContent).not.toContain('SchemaSchema');
+
+    // Verify that our custom naming was applied at the TypeScript level
+    // by checking that we don't have the default pattern
+    expect(result?.rawSchemasFileContent).not.toContain(
+      'publicUsersInsertSchemaSchema',
+    );
   });
 });

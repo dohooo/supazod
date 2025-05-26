@@ -5,6 +5,8 @@ import fsSync from 'node:fs';
 import { join } from 'node:path';
 import * as url from 'url';
 
+import { loadConfig, parseCliNamingConfig } from './lib/config-loader';
+import { defaultNamingConfig } from './lib/naming-config';
 import supabaseToZod, { supabaseToZodOptionsSchema } from './supabase-to-zod';
 
 const __dirname = url.fileURLToPath(new URL('.', import.meta.url));
@@ -28,19 +30,68 @@ program
   )
   .option('-s, --schema [schema]', 'Specify schemas (comma-separated)', '')
   .option('-v, --verbose', 'Enable verbose logging')
+  // Naming configuration options
+  .option(
+    '--table-operation-pattern <pattern>',
+    'Pattern for table operations (e.g., {schema}{table}{operation})',
+  )
+  .option(
+    '--enum-pattern <pattern>',
+    'Pattern for enums (e.g., {schema}{name})',
+  )
+  .option(
+    '--composite-type-pattern <pattern>',
+    'Pattern for composite types (e.g., {schema}{name})',
+  )
+  .option(
+    '--function-args-pattern <pattern>',
+    'Pattern for function args (e.g., {schema}{function}Args)',
+  )
+  .option(
+    '--function-returns-pattern <pattern>',
+    'Pattern for function returns (e.g., {schema}{function}Returns)',
+  )
+  .option(
+    '--capitalize-schema [boolean]',
+    'Capitalize schema names (default: true)',
+    (value) => value !== 'false',
+  )
+  .option(
+    '--capitalize-names [boolean]',
+    'Capitalize type names (default: true)',
+    (value) => value !== 'false',
+  )
+  .option(
+    '--separator [separator]',
+    'Separator between name parts (default: empty)',
+  )
   .parse(process.argv);
-
-const opts = supabaseToZodOptionsSchema.parse({
-  ...program.opts(),
-  schema: program
-    .opts()
-    .schema.split(',')
-    .map((s: string) => s.trim())
-    .filter((s: string) => s.length),
-});
 
 (async () => {
   try {
+    // Load configuration from file
+    const config = await loadConfig(process.cwd());
+
+    // Parse CLI naming config
+    const cliNamingConfig = parseCliNamingConfig(program.opts());
+
+    // Merge configurations: defaults < config file < CLI args
+    const finalNamingConfig = {
+      ...defaultNamingConfig,
+      ...config.namingConfig,
+      ...cliNamingConfig,
+    };
+
+    const opts = supabaseToZodOptionsSchema.parse({
+      ...program.opts(),
+      schema: program
+        .opts()
+        .schema.split(',')
+        .map((s: string) => s.trim())
+        .filter((s: string) => s.length),
+      namingConfig: finalNamingConfig,
+    });
+
     await supabaseToZod(opts);
     process.exit();
   } catch (error) {

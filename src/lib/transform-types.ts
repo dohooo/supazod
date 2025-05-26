@@ -3,6 +3,12 @@ import { z } from 'zod';
 
 import { getNodeName } from './get-node-name';
 import { logger } from './logger';
+import {
+  namingConfigSchema,
+  defaultNamingConfig,
+  formatName,
+  type NamingConfig,
+} from './naming-config';
 
 const enumFormatterSchema = z.function().args(z.string()).returns(z.string());
 const compositeTypeFormatterSchema = z
@@ -35,6 +41,7 @@ export const transformTypesOptionsSchema = z.object({
     () => (name: string, operation: string) =>
       `${toCamelCase([name, operation])}`,
   ),
+  namingConfig: namingConfigSchema.optional().default(defaultNamingConfig),
 });
 
 export type TransformTypesOptions = z.infer<typeof transformTypesOptionsSchema>;
@@ -54,6 +61,7 @@ interface NodeProcessorContext {
   schema: string;
   collector: TypeCollector;
   processDependencies: boolean;
+  namingConfig: NamingConfig;
   formatters: {
     tableOrView: (name: string, operation: string) => string;
     enum: (name: string) => string;
@@ -84,6 +92,7 @@ export const transformTypes = z
       schema: opts.schema,
       collector,
       processDependencies: opts.processDependencies ?? true,
+      namingConfig: opts.namingConfig,
       formatters: {
         tableOrView: opts.tableOrViewFormatter,
         enum: opts.enumFormatter,
@@ -93,7 +102,7 @@ export const transformTypes = z
     };
 
     processSourceFile(sourceFile, context);
-    return formatOutput(collector, opts.schema);
+    return formatOutput(collector, opts.schema, opts.namingConfig);
   });
 
 function processSourceFile(
@@ -182,7 +191,14 @@ function processOtherSchemaDependencies(
               ts.isUnionTypeNode(typeNode) ||
               ts.isLiteralTypeNode(typeNode)
             ) {
-              const formattedName = `${schemaName}_${context.formatters.enum(enumName)}`;
+              const formattedName = formatName(
+                context.namingConfig.enumPattern,
+                {
+                  schema: schemaName,
+                  name: enumName,
+                },
+                context.namingConfig,
+              );
               const typeText = typeNode.getText(context.sourceFile);
 
               if (isTypeReferenced(context.sourceFile, schemaName, enumName)) {
@@ -286,7 +302,15 @@ function processTableOperations(
 
       operationNode.forEachChild((typeNode) => {
         if (ts.isTypeLiteralNode(typeNode) || ts.isTupleTypeNode(typeNode)) {
-          const formattedName = `${toCamelCase([context.schema, tableName, operation])}Schema`;
+          const formattedName = formatName(
+            context.namingConfig.tableOperationPattern,
+            {
+              schema: context.schema,
+              table: tableName,
+              operation,
+            },
+            context.namingConfig,
+          );
           logger.debug(
             `Generated type name for table operation: ${formattedName}`,
             '🏷️',
@@ -312,15 +336,14 @@ function processEnums(
 
       enumNode.forEachChild((typeNode) => {
         if (ts.isUnionTypeNode(typeNode) || ts.isLiteralTypeNode(typeNode)) {
-          const formattedEnumName = context.formatters.enum(enumName);
-          const capitalizedSchema = context.schema
-            .split('_')
-            .map(
-              (part) =>
-                part.charAt(0).toUpperCase() + part.slice(1).toLowerCase(),
-            )
-            .join('');
-          const fullFormattedName = `${capitalizedSchema}${formattedEnumName}`;
+          const fullFormattedName = formatName(
+            context.namingConfig.enumPattern,
+            {
+              schema: context.schema,
+              name: enumName,
+            },
+            context.namingConfig,
+          );
 
           const typeText = typeNode.getText(context.sourceFile);
           context.collector.typeStrings.push(
@@ -348,7 +371,14 @@ function processCompositeTypes(
 
       typeNode.forEachChild((n) => {
         if (ts.isTypeLiteralNode(n)) {
-          const formattedName = context.formatters.compositeType(typeName);
+          const formattedName = formatName(
+            context.namingConfig.compositeTypePattern,
+            {
+              schema: context.schema,
+              name: typeName,
+            },
+            context.namingConfig,
+          );
           const typeText = n.getText(context.sourceFile);
           context.collector.typeStrings.push(
             `export type ${formattedName} = ${typeText}`,
@@ -389,7 +419,19 @@ function processFunctionDefinition(
       const memberName = getNodeName(memberNode);
       if (memberName === 'Args' || memberName === 'Returns') {
         memberNode.forEachChild((typeNode) => {
-          const formattedName = `${toCamelCase([context.schema, funcName, memberName])}Schema`;
+          const pattern =
+            memberName === 'Args'
+              ? context.namingConfig.functionArgsPattern
+              : context.namingConfig.functionReturnsPattern;
+
+          const formattedName = formatName(
+            pattern,
+            {
+              schema: context.schema,
+              function: funcName,
+            },
+            context.namingConfig,
+          );
 
           logger.debug(
             `Processing function ${funcName}.${memberName}, node kind: ${ts.SyntaxKind[typeNode.kind]}`,
@@ -411,15 +453,9 @@ function processFunctionDefinition(
 
           logger.debug(`Final type text: ${typeText}`);
 
-          if (memberName === 'Returns') {
-            context.collector.typeStrings.push(
-              `export type ${formattedName} = ${typeText};`,
-            );
-          } else {
-            context.collector.typeStrings.push(
-              `export type ${formattedName} = ${typeText};`,
-            );
-          }
+          context.collector.typeStrings.push(
+            `export type ${formattedName} = ${typeText};`,
+          );
         });
       }
     });
@@ -437,7 +473,11 @@ function visitTypeLiteralChild(
   });
 }
 
-function formatOutput(collector: TypeCollector, schema: string): string {
+function formatOutput(
+  collector: TypeCollector,
+  schema: string,
+  namingConfig: NamingConfig,
+): string {
   const enumTypes = collector.typeStrings
     .filter((s) => s.includes(' = "'))
     .join(';\n');
@@ -449,7 +489,7 @@ function formatOutput(collector: TypeCollector, schema: string): string {
 
   let parsedTypes = `${enumTypes}\n\n${otherTypes}`;
 
-  parsedTypes = replaceTableOperationReferences(parsedTypes);
+  parsedTypes = replaceTableOperationReferences(parsedTypes, namingConfig);
 
   for (const {
     name,
@@ -584,13 +624,24 @@ export function getAllSchemas(sourceText: string): string[] {
   return schemas;
 }
 
-function replaceTableOperationReferences(typeString: string): string {
+function replaceTableOperationReferences(
+  typeString: string,
+  namingConfig: NamingConfig = defaultNamingConfig,
+): string {
   const regex =
     /Database\["(\w+)"\]\["(Tables|Views)"\]\["(\w+)"\]\["(\w+)"\]/g;
   return typeString.replace(
     regex,
     (match, schema, category, name, operation) => {
-      const formattedName = toCamelCase([schema, name, operation]) + 'Schema';
+      const formattedName = formatName(
+        namingConfig.tableOperationPattern,
+        {
+          schema,
+          table: name,
+          operation,
+        },
+        namingConfig,
+      );
       return formattedName;
     },
   );
