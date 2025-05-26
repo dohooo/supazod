@@ -1,3 +1,10 @@
+# [1.3.0](https://github.com/dohooo/supazod/compare/v1.2.3...v1.3.0) (2025-05-26)
+
+
+### Features
+
+* introduce migration guide and breaking changes for v2.0.0 ([7e237c5](https://github.com/dohooo/supazod/commit/7e237c5a2b596ae56531a18558dcf81008a45389))
+
 ## [1.2.3](https://github.com/dohooo/supazod/compare/v1.2.2...v1.2.3) (2025-03-13)
 
 
