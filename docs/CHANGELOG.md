@@ -1,3 +1,15 @@
+# [4.0.0](https://github.com/dohooo/supazod/compare/v3.0.0...v4.0.0) (2025-09-21)
+
+
+### chore
+
+* trigger v4 release ([bbd8d8f](https://github.com/dohooo/supazod/commit/bbd8d8f833417481fb39998ba6a298b84171e571))
+
+
+### BREAKING CHANGES
+
+* start v4; Zod 4 support contains breaking changes
+
 # [2.0.0](https://github.com/dohooo/supazod/compare/v1.2.3...v2.0.0) (2025-05-26)
 
 
