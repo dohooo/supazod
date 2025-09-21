@@ -1,3 +1,10 @@
+# [4.1.0](https://github.com/dohooo/supazod/compare/v4.0.0...v4.1.0) (2025-09-21)
+
+
+### Features
+
+* allow custom config path and keep separators in generated names ([#6](https://github.com/dohooo/supazod/issues/6)) ([c13b5ea](https://github.com/dohooo/supazod/commit/c13b5ea4736e6aeca42d3be0d38f216f826ad00a))
+
 # [4.0.0](https://github.com/dohooo/supazod/compare/v3.0.0...v4.0.0) (2025-09-21)
 
 
