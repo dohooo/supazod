@@ -30,26 +30,47 @@ program
   )
   .option('-s, --schema [schema]', 'Specify schemas (comma-separated)', '')
   .option('-v, --verbose', 'Enable verbose logging')
+  .option('--config <path>', 'Path to a Supazod config file')
   // Naming configuration options
   .option(
     '--table-operation-pattern <pattern>',
     'Pattern for table operations (e.g., {schema}{table}{operation})',
   )
   .option(
+    '--table-schema-pattern <pattern>',
+    'Pattern for table schema constants (e.g., {schema}{table}{operation})',
+  )
+  .option(
     '--enum-pattern <pattern>',
     'Pattern for enums (e.g., {schema}{name})',
+  )
+  .option(
+    '--enum-schema-pattern <pattern>',
+    'Pattern for enum schema constants (e.g., {schema}{name})',
   )
   .option(
     '--composite-type-pattern <pattern>',
     'Pattern for composite types (e.g., {schema}{name})',
   )
   .option(
+    '--composite-type-schema-pattern <pattern>',
+    'Pattern for composite type schema constants (e.g., {schema}{name})',
+  )
+  .option(
     '--function-args-pattern <pattern>',
     'Pattern for function args (e.g., {schema}{function}Args)',
   )
   .option(
+    '--function-args-schema-pattern <pattern>',
+    'Pattern for function arg schema constants (e.g., {schema}{function}Args)',
+  )
+  .option(
     '--function-returns-pattern <pattern>',
     'Pattern for function returns (e.g., {schema}{function}Returns)',
+  )
+  .option(
+    '--function-returns-schema-pattern <pattern>',
+    'Pattern for function return schema constants (e.g., {schema}{function}Returns)',
   )
   .option(
     '--capitalize-schema [boolean]',
@@ -70,10 +91,18 @@ program
 (async () => {
   try {
     // Load configuration from file
-    const config = await loadConfig(process.cwd());
+    const cliOptions = program.opts();
+
+    const config = await loadConfig(process.cwd(), cliOptions.config);
+
+    const {
+      schema: schemaOptionRaw = '',
+      config: _ignoredConfig,
+      ...restOptions
+    } = cliOptions as Record<string, any> & { schema?: string };
 
     // Parse CLI naming config
-    const cliNamingConfig = parseCliNamingConfig(program.opts());
+    const cliNamingConfig = parseCliNamingConfig(cliOptions);
 
     // Merge configurations: defaults < config file < CLI args
     const finalNamingConfig = {
@@ -82,13 +111,15 @@ program
       ...cliNamingConfig,
     };
 
+    const schemaList = (schemaOptionRaw ?? '')
+      .toString()
+      .split(',')
+      .map((s: string) => s.trim())
+      .filter((s: string) => s.length);
+
     const opts = supabaseToZodOptionsSchema.parse({
-      ...program.opts(),
-      schema: program
-        .opts()
-        .schema.split(',')
-        .map((s: string) => s.trim())
-        .filter((s: string) => s.length),
+      ...restOptions,
+      schema: schemaList,
       namingConfig: finalNamingConfig,
     });
 

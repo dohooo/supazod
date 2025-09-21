@@ -24,6 +24,29 @@ describe('config-loader', () => {
       expect(config).toEqual({});
     });
 
+    it('should load config from explicit path', async () => {
+      const configContent = JSON.stringify({
+        namingConfig: {
+          tableOperationPattern: '{schema}_{table}_{operation}',
+          enumPattern: '{schema}_{name}_Enum',
+        },
+      });
+      writeFileSync(testJsonConfigPath, configContent);
+
+      const config = await loadConfig(process.cwd(), testJsonConfigPath);
+
+      expect(config.namingConfig?.tableOperationPattern).toBe(
+        '{schema}_{table}_{operation}',
+      );
+      expect(config.namingConfig?.enumPattern).toBe('{schema}_{name}_Enum');
+    });
+
+    it('should throw when explicit config path is missing', async () => {
+      await expect(
+        loadConfig(process.cwd(), 'non-existent-config.json'),
+      ).rejects.toThrow(/Configuration file not found/);
+    });
+
     it('should load JSON config', async () => {
       const configContent = JSON.stringify({
         namingConfig: {

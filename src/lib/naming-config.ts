@@ -52,14 +52,24 @@ export type FunctionReturnsPattern = NamingPattern<['schema', 'function']>;
 export interface NamingConfig {
   /** Pattern for table operations (Row, Insert, Update) */
   tableOperationPattern: TableOperationPattern;
+  /** Pattern for generated schema constants for table operations */
+  tableSchemaPattern: TableOperationPattern;
   /** Pattern for enum types */
   enumPattern: EnumPattern;
+  /** Pattern for generated schema constants for enums */
+  enumSchemaPattern: EnumPattern;
   /** Pattern for composite types */
   compositeTypePattern: CompositeTypePattern;
+  /** Pattern for generated schema constants for composite types */
+  compositeTypeSchemaPattern: CompositeTypePattern;
   /** Pattern for function arguments */
   functionArgsPattern: FunctionArgsPattern;
+  /** Pattern for generated schema constants for function arguments */
+  functionArgsSchemaPattern: FunctionArgsPattern;
   /** Pattern for function returns */
   functionReturnsPattern: FunctionReturnsPattern;
+  /** Pattern for generated schema constants for function returns */
+  functionReturnsSchemaPattern: FunctionReturnsPattern;
   /** Whether to capitalize schema names */
   capitalizeSchema: boolean;
   /** Whether to capitalize table/type names */
@@ -87,14 +97,24 @@ export interface SupazodConfig {
 export const namingConfigSchema = z.object({
   /** Pattern for table operations (Row, Insert, Update) */
   tableOperationPattern: z.string().default('{schema}{table}{operation}'),
+  /** Pattern for generated schema constants for table operations */
+  tableSchemaPattern: z.string().default('{schema}{table}{operation}'),
   /** Pattern for enum types */
   enumPattern: z.string().default('{schema}{name}'),
+  /** Pattern for generated schema constants for enums */
+  enumSchemaPattern: z.string().default('{schema}{name}'),
   /** Pattern for composite types */
   compositeTypePattern: z.string().default('{schema}{name}'),
+  /** Pattern for generated schema constants for composite types */
+  compositeTypeSchemaPattern: z.string().default('{schema}{name}'),
   /** Pattern for function arguments */
   functionArgsPattern: z.string().default('{schema}{function}Args'),
+  /** Pattern for generated schema constants for function arguments */
+  functionArgsSchemaPattern: z.string().default('{schema}{function}Args'),
   /** Pattern for function returns */
   functionReturnsPattern: z.string().default('{schema}{function}Returns'),
+  /** Pattern for generated schema constants for function returns */
+  functionReturnsSchemaPattern: z.string().default('{schema}{function}Returns'),
   /** Whether to capitalize schema names */
   capitalizeSchema: z.boolean().default(true),
   /** Whether to capitalize table/type names */
@@ -105,10 +125,16 @@ export const namingConfigSchema = z.object({
 
 export const defaultNamingConfig: NamingConfig = {
   tableOperationPattern: '{schema}{table}{operation}' as TableOperationPattern,
+  tableSchemaPattern: '{schema}{table}{operation}' as TableOperationPattern,
   enumPattern: '{schema}{name}' as EnumPattern,
+  enumSchemaPattern: '{schema}{name}' as EnumPattern,
   compositeTypePattern: '{schema}{name}' as CompositeTypePattern,
+  compositeTypeSchemaPattern: '{schema}{name}' as CompositeTypePattern,
   functionArgsPattern: '{schema}{function}Args' as FunctionArgsPattern,
+  functionArgsSchemaPattern: '{schema}{function}Args' as FunctionArgsPattern,
   functionReturnsPattern: '{schema}{function}Returns' as FunctionReturnsPattern,
+  functionReturnsSchemaPattern:
+    '{schema}{function}Returns' as FunctionReturnsPattern,
   capitalizeSchema: true,
   capitalizeNames: true,
   separator: '',
@@ -163,6 +189,51 @@ export function formatName(
   }
 
   return result;
+}
+
+/**
+ * Generate a lower camel-cased schema variable name with a Schema suffix.
+ * If the resulting identifier already includes the Schema suffix, it won't be duplicated.
+ */
+export function toSchemaVariableName(
+  name: string,
+  preserveSeparators = false,
+): string {
+  if (!preserveSeparators) {
+    const parts = name
+      .split(/[^A-Za-z0-9]+/)
+      .map((part) => part.trim())
+      .filter(Boolean);
+
+    if (parts.length === 0) {
+      return name.endsWith('Schema') ? name : `${name}Schema`;
+    }
+
+    const pascalCase = parts
+      .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+      .join('');
+
+    if (!pascalCase) {
+      return name.endsWith('Schema') ? name : `${name}Schema`;
+    }
+
+    const camelCase = pascalCase.charAt(0).toLowerCase() + pascalCase.slice(1);
+
+    return camelCase.endsWith('Schema') ? camelCase : `${camelCase}Schema`;
+  }
+
+  const normalized = name
+    .replace(/([a-z0-9])([A-Z])/g, '$1_$2')
+    .replace(/[^A-Za-z0-9]+/g, '_')
+    .replace(/_{2,}/g, '_')
+    .replace(/^_+|_+$/g, '')
+    .toLowerCase();
+
+  if (!normalized) {
+    return 'schema';
+  }
+
+  return normalized.endsWith('schema') ? normalized : `${normalized}_schema`;
 }
 
 /**

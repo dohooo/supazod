@@ -496,4 +496,55 @@ describe('supazod', () => {
       'publicUsersInsertSchemaSchema',
     );
   });
+
+  it('should allow separate patterns for types and schema constants', async () => {
+    const typesFilePath = join(EXAMPLE_DIR, 'types.ts');
+    const opts = supabaseToZodOptionsSchema.parse({
+      input: typesFilePath,
+      output: join(EXAMPLE_DIR, 'schema.ts'),
+      typesOutput: join(EXAMPLE_DIR, 'schema.d.ts'),
+      schema: ['public'],
+      verbose: false,
+      namingConfig: {
+        tableOperationPattern: '{schema}_{table}_{operation}_Type',
+        tableSchemaPattern: '{schema}{table}{operation}',
+        enumPattern: '{schema}_{name}_Enum',
+        enumSchemaPattern: '{schema}{name}',
+        compositeTypePattern: '{schema}_{name}_Type',
+        compositeTypeSchemaPattern: '{schema}{name}',
+        functionArgsPattern: '{schema}_{function}_Args_Type',
+        functionArgsSchemaPattern: '{schema}{function}Args',
+        functionReturnsPattern: '{schema}_{function}_Returns_Type',
+        functionReturnsSchemaPattern: '{schema}{function}Returns',
+        capitalizeSchema: true,
+        capitalizeNames: true,
+        separator: '_',
+      },
+    });
+
+    const result = await generateContent(opts);
+
+    expect(result?.rawSchemasFileContent).toContain(
+      'export const publicUsersInsertSchema =',
+    );
+    expect(result?.rawSchemasFileContent).not.toContain(
+      'publicUsersInsertTypeSchema',
+    );
+    expect(result?.rawSchemasFileContent).toContain(
+      'export const publicUserStatusSchema =',
+    );
+    expect(result?.rawSchemasFileContent).not.toContain(
+      'publicUserStatusEnumSchema',
+    );
+
+    expect(result?.rawTypesFileContent).toContain(
+      'export type Public_Users_Insert_Type =',
+    );
+    expect(result?.rawTypesFileContent).toContain(
+      'typeof generated.publicUsersInsertSchema',
+    );
+    expect(result?.rawTypesFileContent).toContain(
+      'typeof generated.publicUserStatusSchema',
+    );
+  });
 });

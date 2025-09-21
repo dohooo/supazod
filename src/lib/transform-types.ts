@@ -7,6 +7,7 @@ import {
   namingConfigSchema,
   defaultNamingConfig,
   formatName,
+  toSchemaVariableName,
   type NamingConfig,
 } from './naming-config';
 
@@ -26,6 +27,17 @@ const tableOrViewFormatterSchema = z.function({
   input: [z.string(), z.string()],
   output: z.string(),
 });
+const schemaNameCollectorSchema = z
+  .function({
+    input: [
+      z.object({
+        typeName: z.string(),
+        schemaName: z.string(),
+      }),
+    ],
+    output: z.void(),
+  })
+  .optional();
 
 export const transformTypesOptionsSchema = z.object({
   sourceText: z.string(),
@@ -45,9 +57,15 @@ export const transformTypesOptionsSchema = z.object({
       `${toCamelCase([name, operation])}`,
   ),
   namingConfig: namingConfigSchema.optional().default(defaultNamingConfig),
+  schemaNameCollector: schemaNameCollectorSchema,
 });
 
 export type TransformTypesOptions = z.infer<typeof transformTypesOptionsSchema>;
+
+export interface SchemaNameMapping {
+  typeName: string;
+  schemaName: string;
+}
 
 interface TypeCollector {
   typeStrings: string[];
@@ -71,6 +89,7 @@ interface NodeProcessorContext {
     compositeType: (name: string) => string;
     function: (name: string, type: string) => string;
   };
+  schemaNameCollector?: (mapping: SchemaNameMapping) => void;
 }
 
 export const transformTypes = z
@@ -103,6 +122,7 @@ export const transformTypes = z
         compositeType: opts.compositeTypeFormatter,
         function: opts.functionFormatter,
       },
+      schemaNameCollector: opts.schemaNameCollector,
     };
 
     processSourceFile(sourceFile, context);
@@ -214,6 +234,16 @@ function processOtherSchemaDependencies(
                   formattedName,
                   schema: schemaName,
                 });
+
+                collectSchemaName(
+                  context,
+                  context.namingConfig.enumSchemaPattern,
+                  {
+                    schema: schemaName,
+                    name: enumName,
+                  },
+                  formattedName,
+                );
               }
             }
           });
@@ -323,6 +353,17 @@ function processTableOperations(
           context.collector.typeStrings.push(
             `export type ${formattedName} = ${typeText}`,
           );
+
+          collectSchemaName(
+            context,
+            context.namingConfig.tableSchemaPattern,
+            {
+              schema: context.schema,
+              table: tableName,
+              operation,
+            },
+            formattedName,
+          );
         }
       });
     });
@@ -358,6 +399,16 @@ function processEnums(
             formattedName: fullFormattedName,
             schema: context.schema,
           });
+
+          collectSchemaName(
+            context,
+            context.namingConfig.enumSchemaPattern,
+            {
+              schema: context.schema,
+              name: enumName,
+            },
+            fullFormattedName,
+          );
         }
       });
     });
@@ -391,6 +442,16 @@ function processCompositeTypes(
             name: typeName,
             formattedName,
           });
+
+          collectSchemaName(
+            context,
+            context.namingConfig.compositeTypeSchemaPattern,
+            {
+              schema: context.schema,
+              name: typeName,
+            },
+            formattedName,
+          );
         }
       });
     });
@@ -459,6 +520,21 @@ function processFunctionDefinition(
 
           context.collector.typeStrings.push(
             `export type ${formattedName} = ${typeText};`,
+          );
+
+          const schemaPattern =
+            memberName === 'Args'
+              ? context.namingConfig.functionArgsSchemaPattern
+              : context.namingConfig.functionReturnsSchemaPattern;
+
+          collectSchemaName(
+            context,
+            schemaPattern,
+            {
+              schema: context.schema,
+              function: funcName,
+            },
+            formattedName,
           );
         });
       }
@@ -529,23 +605,16 @@ function replaceTypeReferences(
   name: string,
   formattedName: string,
 ): string {
-  const capitalizedSchema = schema
-    .split('_')
-    .map((part) => part.charAt(0).toUpperCase() + part.slice(1).toLowerCase())
-    .join('');
-  const formattedEnumName = toCamelCase([name]).replace(/_/g, '');
-  const standardizedName = `${capitalizedSchema}${formattedEnumName}`;
-
   const patterns = [
     `Database["${schema}"]["${category}"]["${name}"]`,
     `Database['${schema}']['${category}']['${name}']`,
     `${schema}${category}${name}Schema`,
     `${schema}${name}Schema`,
-    formattedName,
     `${schema.toLowerCase()}${name}Schema`,
-    `${capitalizedSchema}${name}Schema`,
-    `${schema.replace('_', '')}${name}Schema`,
-    `${schema.toLowerCase().replace('_', '')}${name}Schema`,
+    `${schema.replace(/_/g, '')}${name}Schema`,
+    `${schema.toLowerCase().replace(/_/g, '')}${name}Schema`,
+    `${capitalizeWords(schema)}${name}Schema`,
+    formattedName,
   ];
 
   return types
@@ -557,12 +626,40 @@ function replaceTypeReferences(
             pattern.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'),
             'g',
           );
-          return line.replace(regex, standardizedName);
+          return line.replace(regex, formattedName);
         }
       }
       return line;
     })
     .join('\n');
+}
+
+function collectSchemaName(
+  context: NodeProcessorContext,
+  pattern: string,
+  placeholders: Record<string, string>,
+  typeName: string,
+) {
+  if (!context.schemaNameCollector) return;
+
+  const formatted = formatName(pattern, placeholders, context.namingConfig);
+  const preserveSeparators = /[^A-Za-z0-9]/.test(formatted);
+  const schemaVariableName = toSchemaVariableName(
+    formatted,
+    preserveSeparators,
+  );
+
+  context.schemaNameCollector({
+    typeName,
+    schemaName: schemaVariableName,
+  });
+}
+
+function capitalizeWords(str: string): string {
+  return str
+    .split('_')
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1).toLowerCase())
+    .join('');
 }
 
 function toCamelCase(parts: string[]): string {

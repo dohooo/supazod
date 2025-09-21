@@ -46,10 +46,14 @@ export default defineConfig({
     // TypeScript provides autocomplete for placeholders:
     // {schema}, {table}, {operation}, {function}, {name}
     tableOperationPattern: '{schema}_{table}_{operation}',
+    tableSchemaPattern: '{schema}{table}{operation}',
     enumPattern: '{schema}_{name}_Enum',
+    enumSchemaPattern: '{schema}{name}',
     functionArgsPattern: '{schema}_{function}_Args',
+    functionArgsSchemaPattern: '{schema}{function}Args',
     functionReturnsPattern: '{schema}_{function}_Returns',
-    
+    functionReturnsSchemaPattern: '{schema}{function}Returns',
+
     // Capitalization and formatting
     capitalizeSchema: true,
     capitalizeNames: true,
@@ -64,7 +68,9 @@ export default defineConfig({
 {
   "namingConfig": {
     "tableOperationPattern": "{schema}_{table}_{operation}",
+    "tableSchemaPattern": "{schema}{table}{operation}",
     "enumPattern": "{schema}_{name}_Enum",
+    "enumSchemaPattern": "{schema}{name}",
     "capitalizeSchema": true,
     "capitalizeNames": true,
     "separator": "_"
@@ -93,9 +99,14 @@ supazod [options]
 
 # Naming Configuration (overrides config file)
 --table-operation-pattern <pattern>    Pattern for table operations
+--table-schema-pattern <pattern>       Pattern for table schema constants
 --enum-pattern <pattern>               Pattern for enums  
+--enum-schema-pattern <pattern>        Pattern for enum schema constants  
 --function-args-pattern <pattern>      Pattern for function arguments
+--function-args-schema-pattern <pattern>  Pattern for function arg schema constants
 --function-returns-pattern <pattern>   Pattern for function returns
+--function-returns-schema-pattern <pattern> Pattern for function return schema constants
+--config <path>                        Path to a Supazod config file
 --capitalize-schema <boolean>          Capitalize schema names
 --capitalize-names <boolean>           Capitalize type names
 --separator <string>                   Separator between name parts
@@ -107,9 +118,18 @@ supazod [options]
 # Generate with custom naming patterns
 $ pnpm supazod -i types.ts -o schemas.ts \
   --table-operation-pattern '{schema}_{table}_{operation}' \
+  --table-schema-pattern '{schema}{table}{operation}' \
   --enum-pattern '{schema}_{name}_Enum' \
+  --enum-schema-pattern '{schema}{name}' \
   --separator '_'
 ```
+
+### Separating Type and Schema Names
+
+For each naming pattern there is an optional companion for the generated Zod schema constants (for example `tableSchemaPattern`).
+Use these when you want custom suffixes on TypeScript types without affecting the schema identifiers that appear in `schemas.ts`.
+
+Patterns now preserve any separators you include (like `_` or `-`) in the emitted type aliases and schema constants, so you can rely on the exact formatting you configure.
 
 ## Available Placeholders
 

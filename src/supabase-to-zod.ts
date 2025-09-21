@@ -12,6 +12,8 @@ import {
   getAllSchemas,
   namingConfigSchema,
   defaultNamingConfig,
+  toSchemaVariableName,
+  type SchemaNameMapping,
 } from './lib';
 import { replaceGeneratedComment } from './lib/comment-utils';
 import { logger } from './lib/logger';
@@ -70,6 +72,7 @@ export type SupabaseToZodOptions = z.infer<typeof supabaseToZodOptionsSchema>;
 async function collectTypes(
   sourceText: string,
   opts: Omit<SupabaseToZodOptions, 'schema'> & { schema: string },
+  schemaNameCollector?: (mapping: SchemaNameMapping) => void,
 ) {
   const sourceFile = ts.createSourceFile(
     'temp.ts',
@@ -128,6 +131,7 @@ async function collectTypes(
   const schemaParsedTypes = transformTypes({
     sourceText: processedSourceText,
     ...opts,
+    schemaNameCollector,
   });
 
   return schemaParsedTypes;
@@ -177,13 +181,20 @@ export async function generateContent(opts: SupabaseToZodOptions) {
   logger.info(`Detected schemas: ${opts.schema.join(', ')}`, '📋');
 
   let parsedTypes = '';
+  const schemaNameMappings: SchemaNameMapping[] = [];
 
   logger.info('Transforming types...', '🔄');
   for (const schema of opts.schema) {
-    const schemaParsedTypes = await collectTypes(sourceText, {
-      ...opts,
-      schema,
-    });
+    const schemaParsedTypes = await collectTypes(
+      sourceText,
+      {
+        ...opts,
+        schema,
+      },
+      (mapping) => {
+        schemaNameMappings.push(mapping);
+      },
+    );
     parsedTypes += schemaParsedTypes;
   }
 
@@ -195,6 +206,8 @@ export async function generateContent(opts: SupabaseToZodOptions) {
       ...opts,
     });
 
+    const schemaNameOverrides = buildSchemaNameOverrides(schemaNameMappings);
+
     if (errors.length > 0) {
       logger.error('Schema generation failed with the following errors:');
       errors.forEach((error) => logger.error(`- ${error}`));
@@ -205,7 +218,14 @@ export async function generateContent(opts: SupabaseToZodOptions) {
       getImportPath(outputPath, inputPath),
     );
 
-    const contentWithNewComment = replaceGeneratedComment(zodSchemasFile);
+    const schemaContentWithOverrides = applySchemaNameOverrides(
+      zodSchemasFile,
+      schemaNameOverrides,
+    );
+
+    const contentWithNewComment = replaceGeneratedComment(
+      schemaContentWithOverrides,
+    );
 
     const formatterSchemasFileContent = await prettier.format(
       contentWithNewComment,
@@ -219,8 +239,26 @@ export async function generateContent(opts: SupabaseToZodOptions) {
 
       const zodSchemasImportPath = getImportPath(typesOutputPath, outputPath);
       let typesContent = getInferredTypes(zodSchemasImportPath);
+      typesContent = applySchemaNameOverrides(
+        typesContent,
+        schemaNameOverrides,
+      );
 
-      typesContent = transformTypeNames(typesContent, opts.typeNameTransformer);
+      const typeNameOverrides = buildTypeNameOverrides(
+        schemaNameMappings,
+        opts.typeNameTransformer,
+      );
+      typesContent = applyTypeNameOverrides(typesContent, typeNameOverrides);
+
+      const preserveTypeNames = schemaNameMappings.some(({ typeName }) =>
+        /[^A-Za-z0-9]/.test(typeName),
+      );
+
+      const typeNameTransformer = preserveTypeNames
+        ? (name: string) => name
+        : opts.typeNameTransformer;
+
+      typesContent = transformTypeNames(typesContent, typeNameTransformer);
 
       const typesWithNewComment = replaceGeneratedComment(typesContent);
 
@@ -246,4 +284,107 @@ export async function generateContent(opts: SupabaseToZodOptions) {
   } catch (error) {
     throw new Error('Failed to generate schemas: ' + error);
   }
+}
+
+function buildSchemaNameOverrides(
+  mappings: SchemaNameMapping[],
+): Map<string, string> {
+  const overrides = new Map<string, string>();
+
+  for (const { typeName, schemaName } of mappings) {
+    const defaultSchemaName = toSchemaVariableName(typeName);
+
+    if (!defaultSchemaName || defaultSchemaName === schemaName) {
+      continue;
+    }
+
+    if (!overrides.has(defaultSchemaName)) {
+      overrides.set(defaultSchemaName, schemaName);
+      continue;
+    }
+
+    const existing = overrides.get(defaultSchemaName);
+    if (existing && existing !== schemaName) {
+      logger.warn(
+        `Conflicting schema naming overrides for ${defaultSchemaName}: keeping ${existing}, ignoring ${schemaName}`,
+      );
+    }
+  }
+
+  return overrides;
+}
+
+function applySchemaNameOverrides(
+  content: string,
+  overrides: Map<string, string>,
+): string {
+  if (!overrides.size) {
+    return content;
+  }
+
+  let updatedContent = content;
+  const entries = [...overrides.entries()].sort(
+    ([a], [b]) => b.length - a.length,
+  );
+
+  for (const [from, to] of entries) {
+    const pattern = new RegExp(`\\b${escapeRegExp(from)}\\b`, 'g');
+    updatedContent = updatedContent.replace(pattern, to);
+  }
+
+  return updatedContent;
+}
+
+function escapeRegExp(value: string): string {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+function buildTypeNameOverrides(
+  mappings: SchemaNameMapping[],
+  typeNameTransformer: (name: string) => string,
+): Map<string, string> {
+  const overrides = new Map<string, string>();
+
+  for (const { typeName } of mappings) {
+    if (!/[^A-Za-z0-9]/.test(typeName)) continue;
+
+    const defaultName = typeNameTransformer(typeName);
+
+    if (!defaultName || defaultName === typeName) continue;
+
+    if (!overrides.has(defaultName)) {
+      overrides.set(defaultName, typeName);
+      continue;
+    }
+
+    const existing = overrides.get(defaultName);
+    if (existing && existing !== typeName) {
+      logger.warn(
+        `Conflicting type naming overrides for ${defaultName}: keeping ${existing}, ignoring ${typeName}`,
+      );
+    }
+  }
+
+  return overrides;
+}
+
+function applyTypeNameOverrides(
+  content: string,
+  overrides: Map<string, string>,
+): string {
+  if (!overrides.size) {
+    return content;
+  }
+
+  let updatedContent = content;
+  const entries = [...overrides.entries()].sort(
+    ([a], [b]) => b.length - a.length,
+  );
+
+  for (const [from, to] of entries) {
+    const pattern = new RegExp(`\\b${escapeRegExp(from)}\\b`, 'g');
+    updatedContent = updatedContent.replace(pattern, to);
+  }
+
+  return updatedContent;
 }

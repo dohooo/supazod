@@ -4,6 +4,7 @@ import {
   formatName,
   defaultNamingConfig,
   type NamingConfig,
+  toSchemaVariableName,
 } from './naming-config';
 
 describe('naming-config', () => {
@@ -160,6 +161,88 @@ describe('naming-config', () => {
         config,
       );
       expect(result).toBe('Public_users_Insert');
+    });
+
+    it('should handle complex patterns with repeated placeholders', () => {
+      const result = formatName(
+        '{name}_{schema}_{schema}_Enum',
+        {
+          name: 'student_status',
+          schema: 'public',
+        },
+        defaultNamingConfig,
+      );
+      expect(result).toBe('StudentStatus_Public_Public_Enum');
+    });
+
+    it('should handle multi-placeholder table operation patterns', () => {
+      const result = formatName(
+        '{schema}_{schema}_{operation}_{table}_Type',
+        {
+          schema: 'public',
+          operation: 'Insert',
+          table: 'staff',
+        },
+        defaultNamingConfig,
+      );
+      expect(result).toBe('Public_Public_Insert_Staff_Type');
+    });
+
+    it('should distinguish between type and schema suffixes', () => {
+      const typeResult = formatName(
+        '{name}_Type',
+        {
+          name: 'student_status',
+        },
+        defaultNamingConfig,
+      );
+
+      const schemaResult = formatName(
+        '{name}_Schema',
+        {
+          name: 'student_status',
+        },
+        defaultNamingConfig,
+      );
+
+      expect(typeResult).toBe('StudentStatus_Type');
+      expect(schemaResult).toBe('StudentStatus_Schema');
+    });
+
+    describe('toSchemaVariableName', () => {
+      it('should convert PascalCase to camelCase with Schema suffix', () => {
+        expect(toSchemaVariableName('PublicUsersInsert')).toBe(
+          'publicUsersInsertSchema',
+        );
+      });
+
+      it('should convert names with underscores', () => {
+        expect(toSchemaVariableName('Public_Users_Insert')).toBe(
+          'publicUsersInsertSchema',
+        );
+      });
+
+      it('should avoid duplicating Schema suffix', () => {
+        expect(toSchemaVariableName('PublicUsersSchema')).toBe(
+          'publicUsersSchema',
+        );
+      });
+
+      it('should handle empty input gracefully', () => {
+        expect(toSchemaVariableName('')).toBe('Schema');
+      });
+
+      it('should preserve separators when requested', () => {
+        expect(toSchemaVariableName('Public_Users_Insert_Schema', true)).toBe(
+          'public_users_insert_schema',
+        );
+      });
+
+      it('should sanitize non-alphanumeric separators when preserving', () => {
+        expect(toSchemaVariableName('Public Users Insert Schema', true)).toBe(
+          'public_users_insert_schema',
+        );
+      });
     });
   });
 });
