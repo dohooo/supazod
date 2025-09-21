@@ -144,7 +144,7 @@ describe('supazod', () => {
 
       export const publicProviderSlugSchema = z.union([z.literal("github"), z.literal("slack"), z.literal("discord"), z.literal("web"), z.literal("linear"), z.literal("jira"), z.literal("memory"), z.literal("dosu_app")]);
 
-      export const jsonSchema: z.ZodSchema<Json> = z.lazy(() => z.union([z.string(), z.number(), z.boolean(), z.record(jsonSchema), z.array(jsonSchema)]).nullable());
+      export const jsonSchema: z.ZodSchema<Json> = z.lazy(() => z.union([z.string(), z.number(), z.boolean(), z.record(z.string(), jsonSchema), z.array(jsonSchema)]).nullable());
 
       export const publicUserStatusSchema = z.union([z.literal("ONLINE"), z.literal("OFFLINE")]);
 
@@ -345,7 +345,7 @@ describe('supazod', () => {
 
       export const publicProviderSlugSchema = z.union([z.literal("github"), z.literal("slack"), z.literal("discord"), z.literal("web"), z.literal("linear"), z.literal("jira"), z.literal("memory"), z.literal("dosu_app")]);
 
-      export const jsonSchema: z.ZodSchema<Json> = z.lazy(() => z.union([z.string(), z.number(), z.boolean(), z.record(jsonSchema), z.array(jsonSchema)]).nullable());
+      export const jsonSchema: z.ZodSchema<Json> = z.lazy(() => z.union([z.string(), z.number(), z.boolean(), z.record(z.string(), jsonSchema), z.array(jsonSchema)]).nullable());
 
       export const publicUserStatusSchema = z.union([z.literal("ONLINE"), z.literal("OFFLINE")]);
 

@@ -24,7 +24,7 @@ export const jsonSchema: z.ZodSchema<Json> = z.lazy(() =>
       z.string(),
       z.number(),
       z.boolean(),
-      z.record(jsonSchema),
+      z.record(z.string(), jsonSchema),
       z.array(jsonSchema),
     ])
     .nullable(),

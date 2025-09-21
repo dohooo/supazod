@@ -10,19 +10,22 @@ import {
   type NamingConfig,
 } from './naming-config';
 
-const enumFormatterSchema = z.function().args(z.string()).returns(z.string());
-const compositeTypeFormatterSchema = z
-  .function()
-  .args(z.string())
-  .returns(z.string());
-const functionFormatterSchema = z
-  .function()
-  .args(z.string(), z.string())
-  .returns(z.string());
-const tableOrViewFormatterSchema = z
-  .function()
-  .args(z.string(), z.string())
-  .returns(z.string());
+const enumFormatterSchema = z.function({
+  input: [z.string()],
+  output: z.string(),
+});
+const compositeTypeFormatterSchema = z.function({
+  input: [z.string()],
+  output: z.string(),
+});
+const functionFormatterSchema = z.function({
+  input: [z.string(), z.string()],
+  output: z.string(),
+});
+const tableOrViewFormatterSchema = z.function({
+  input: [z.string(), z.string()],
+  output: z.string(),
+});
 
 export const transformTypesOptionsSchema = z.object({
   sourceText: z.string(),
@@ -71,9 +74,10 @@ interface NodeProcessorContext {
 }
 
 export const transformTypes = z
-  .function()
-  .args(transformTypesOptionsSchema)
-  .returns(z.string())
+  .function({
+    input: [transformTypesOptionsSchema],
+    output: z.string(),
+  })
   .implement((opts) => {
     const sourceFile = ts.createSourceFile(
       'index.ts',

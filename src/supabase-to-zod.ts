@@ -23,14 +23,20 @@ const simplifiedJSDocTagSchema = z.object({
   value: z.string().optional(),
 });
 
-const getSchemaNameSchema = z.function().args(z.string()).returns(z.string());
+const getSchemaNameSchema = z.function({
+  input: [z.string()],
+  output: z.string(),
+});
 
-const nameFilterSchema = z.function().args(z.string()).returns(z.boolean());
+const nameFilterSchema = z.function({
+  input: [z.string()],
+  output: z.boolean(),
+});
 
-const jSDocTagFilterSchema = z
-  .function()
-  .args(z.array(simplifiedJSDocTagSchema))
-  .returns(z.boolean());
+const jSDocTagFilterSchema = z.function({
+  input: [z.array(simplifiedJSDocTagSchema)],
+  output: z.boolean(),
+});
 
 export const supabaseToZodOptionsSchema = transformTypesOptionsSchema
   .omit({ sourceText: true })
@@ -50,9 +56,10 @@ export const supabaseToZodOptionsSchema = transformTypesOptionsSchema
     skipParseJSDoc: z.boolean().optional().default(false),
     verbose: z.boolean().optional().default(false),
     typeNameTransformer: z
-      .function()
-      .args(z.string())
-      .returns(z.string())
+      .function({
+        input: [z.string()],
+        output: z.string(),
+      })
       .optional()
       .default(() => defaultTypeNameTransformer),
     namingConfig: namingConfigSchema.optional().default(defaultNamingConfig),

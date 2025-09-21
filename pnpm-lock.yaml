@@ -21,14 +21,14 @@ importers:
         specifier: ^5.1.0
         version: 5.1.0
       ts-to-zod:
-        specifier: 3.15.0
-        version: 3.15.0
+        specifier: 4.0.0
+        version: 4.0.0
       typescript:
         specifier: 5.3.3
         version: 5.3.3
       zod:
-        specifier: ^3.22.4
-        version: 3.22.4
+        specifier: ^4.1.11
+        version: 4.1.11
     devDependencies:
       '@semantic-release/changelog':
         specifier: ^6.0.3
@@ -1189,10 +1189,6 @@ packages:
     resolution: {integrity: sha512-9KDcoEVwyUXrjcJNvHD0NFc/hiwe/WPVYIleQh2O1N2Zro5gWJZ/K+3DGn8w8P/F6FxOgzyC5bxDyHIgCSPhGg==}
     engines: {node: '>=8.0.0', npm: '>=5.0.0'}
     hasBin: true
-
-  cli-spinners@2.7.0:
-    resolution: {integrity: sha512-qu3pN8Y3qHNgE2AFweciB1IfMnmZ/fsNTEE+NOFjmGB2F/7rLhnhzppvpCnN4FovtP26k8lHyy9ptEbNwWFLzw==}
-    engines: {node: '>=6'}
 
   cli-spinners@2.9.2:
     resolution: {integrity: sha512-ywqV+5MmyL4E7ybXgKys4DugZbX0FC6LnwrhjuykIjnK9k8OQacQ7axGKnjDXWNhns0xot3bZI5h55H8yo9cJg==}
@@ -3101,8 +3097,8 @@ packages:
       '@swc/wasm':
         optional: true
 
-  ts-to-zod@3.15.0:
-    resolution: {integrity: sha512-Lu5ITqD8xCIo4JZp4Cg3iSK3J2x3TGwwuDtNHfAIlx1mXWKClRdzqV+x6CFEzhKtJlZzhyvJIqg7DzrWfsdVSg==}
+  ts-to-zod@4.0.0:
+    resolution: {integrity: sha512-Ri8lPNxJlB/tbkEN8G/apaCM+Fg1vFB+l1TyC9q8YYRqOUvUOIGDgfrUKrKSlNXp63gtD6RJ8DI+eOe8lJYELA==}
     hasBin: true
 
   tsconfig-paths@3.15.0:
@@ -3396,11 +3392,8 @@ packages:
     resolution: {integrity: sha512-b4JR1PFR10y1mKjhHY9LaGo6tmrgjit7hxVIeAmyMw3jegXR4dhYqLaQF5zMXZxY7tLpMyJeLjr1C4rLmkVe8g==}
     engines: {node: '>=12.20'}
 
-  zod@3.22.4:
-    resolution: {integrity: sha512-iC+8Io04lddc+mVqQ9AZ7OQ2MrUKGN+oIQyq1vemgt46jwCwLfhq7/pwnBnNXXXZb8VTVLKwp9EDkx+ryxIWmg==}
-
-  zod@3.24.2:
-    resolution: {integrity: sha512-lY7CDW43ECgW9u1TcT3IoXHflywfVqDYze4waEz812jR/bZ8FHDsl7pFQoSZTz5N+2NqRXs8GBwnAwo3ZNxqhQ==}
+  zod@4.1.11:
+    resolution: {integrity: sha512-WPsqwxITS2tzx1bzhIKsEs19ABD5vmCVa4xBo2tq/SrV4RNZtfws1EnCWQXM6yh8bD08a1idvkB5MZSBiZsjwg==}
 
 snapshots:
 
@@ -4157,7 +4150,7 @@ snapshots:
 
   '@typescript/vfs@1.5.0':
     dependencies:
-      debug: 4.3.4
+      debug: 4.4.0(supports-color@8.1.1)
     transitivePeerDependencies:
       - supports-color
 
@@ -4487,8 +4480,6 @@ snapshots:
       parse5: 5.1.1
       parse5-htmlparser2-tree-adapter: 6.0.1
       yargs: 16.2.0
-
-  cli-spinners@2.7.0: {}
 
   cli-spinners@2.9.2: {}
 
@@ -5897,7 +5888,7 @@ snapshots:
       bl: 4.1.0
       chalk: 4.1.2
       cli-cursor: 3.1.0
-      cli-spinners: 2.7.0
+      cli-spinners: 2.9.2
       is-interactive: 1.0.0
       is-unicode-supported: 0.1.0
       log-symbols: 4.1.0
@@ -6501,7 +6492,7 @@ snapshots:
   threads@1.7.0:
     dependencies:
       callsites: 3.1.0
-      debug: 4.3.4
+      debug: 4.4.0(supports-color@8.1.1)
       is-observable: 2.1.0
       observable-fns: 0.6.1
     optionalDependencies:
@@ -6567,7 +6558,7 @@ snapshots:
       v8-compile-cache-lib: 3.0.1
       yn: 3.1.1
 
-  ts-to-zod@3.15.0:
+  ts-to-zod@4.0.0:
     dependencies:
       '@oclif/core': 4.2.6
       '@typescript/vfs': 1.5.0
@@ -6584,7 +6575,7 @@ snapshots:
       tslib: 2.8.1
       tsutils: 3.21.0(typescript@5.3.3)
       typescript: 5.3.3
-      zod: 3.24.2
+      zod: 4.1.11
     transitivePeerDependencies:
       - supports-color
 
@@ -6894,6 +6885,4 @@ snapshots:
 
   yocto-queue@1.1.1: {}
 
-  zod@3.22.4: {}
-
-  zod@3.24.2: {}
+  zod@4.1.11: {}
