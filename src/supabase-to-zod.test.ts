@@ -1,5 +1,6 @@
-import { readFileSync } from 'node:fs';
+import { readFileSync, writeFileSync, mkdtempSync, rmSync } from 'node:fs';
 import { join } from 'node:path';
+import { tmpdir } from 'node:os';
 import { fileURLToPath } from 'url';
 import { describe, expect, it } from 'vitest';
 
@@ -546,5 +547,198 @@ describe('supazod', () => {
     expect(result?.rawTypesFileContent).toContain(
       'typeof generated.publicUserStatusSchema',
     );
+  });
+
+  describe('MergeDeep support', () => {
+    it('should generate schemas from types using MergeDeep pattern', async () => {
+      // Create a temporary directory for test files
+      const tempDir = mkdtempSync(join(tmpdir(), 'supazod-test-'));
+
+      try {
+        // This is the typical pattern users have when extending Supabase types with MergeDeep
+        const mergeDeepTypesContent = `
+import { MergeDeep } from 'type-fest';
+
+export type Json =
+  | string
+  | number
+  | boolean
+  | null
+  | { [key: string]: Json }
+  | Json[];
+
+// This represents the auto-generated types from Supabase CLI
+type DatabaseGenerated = {
+  public: {
+    Tables: {
+      users: {
+        Row: {
+          id: string;
+          email: string;
+          metadata: Json | null;
+        };
+        Insert: {
+          id?: string;
+          email: string;
+          metadata?: Json | null;
+        };
+        Update: {
+          id?: string;
+          email?: string;
+          metadata?: Json | null;
+        };
+        Relationships: [];
+      };
+    };
+    Views: {};
+    Functions: {};
+    Enums: {
+      user_role: 'admin' | 'user' | 'guest';
+    };
+    CompositeTypes: {};
+  };
+};
+
+// Custom type for the metadata JSON field
+type UserMetadata = {
+  firstName: string;
+  lastName: string;
+  preferences: {
+    theme: 'light' | 'dark';
+    notifications: boolean;
+  };
+};
+
+// This is how users extend types with MergeDeep
+export type Database = MergeDeep<
+  DatabaseGenerated,
+  {
+    public: {
+      Tables: {
+        users: {
+          Row: {
+            metadata: UserMetadata | null;
+          };
+          Insert: {
+            metadata?: UserMetadata | null;
+          };
+          Update: {
+            metadata?: UserMetadata | null;
+          };
+        };
+      };
+    };
+  }
+>;
+`;
+
+        const inputPath = join(tempDir, 'types.ts');
+        const outputPath = join(tempDir, 'schema.ts');
+        writeFileSync(inputPath, mergeDeepTypesContent);
+
+        const opts = supabaseToZodOptionsSchema.parse({
+          input: inputPath,
+          output: outputPath,
+          schema: ['public'],
+          verbose: false,
+        });
+
+        const result = await generateContent(opts);
+
+        // Verify that schemas were generated for the tables
+        expect(result).toBeDefined();
+        expect(result?.rawSchemasFileContent).toContain('publicUsersRowSchema');
+        expect(result?.rawSchemasFileContent).toContain('publicUsersInsertSchema');
+        expect(result?.rawSchemasFileContent).toContain('publicUsersUpdateSchema');
+        // Verify enum was generated
+        expect(result?.rawSchemasFileContent).toContain('publicUserRoleSchema');
+      } finally {
+        // Cleanup temp directory
+        rmSync(tempDir, { recursive: true, force: true });
+      }
+    });
+
+    it('should generate schemas when Database type uses MergeDeep with inline generated types', async () => {
+      const tempDir = mkdtempSync(join(tmpdir(), 'supazod-test-'));
+
+      try {
+        // Alternative pattern where DatabaseGenerated is defined inline
+        const mergeDeepInlineContent = `
+import type { MergeDeep } from 'type-fest';
+
+export type Json =
+  | string
+  | number
+  | boolean
+  | null
+  | { [key: string]: Json }
+  | Json[];
+
+export type Database = MergeDeep<
+  {
+    public: {
+      Tables: {
+        posts: {
+          Row: {
+            id: number;
+            title: string;
+            content: Json | null;
+          };
+          Insert: {
+            id?: number;
+            title: string;
+            content?: Json | null;
+          };
+          Update: {
+            id?: number;
+            title?: string;
+            content?: Json | null;
+          };
+          Relationships: [];
+        };
+      };
+      Views: {};
+      Functions: {};
+      Enums: {
+        post_status: 'draft' | 'published' | 'archived';
+      };
+      CompositeTypes: {};
+    };
+  },
+  {
+    public: {
+      Tables: {
+        posts: {
+          Row: {
+            content: { body: string; summary: string } | null;
+          };
+        };
+      };
+    };
+  }
+>;
+`;
+
+        const inputPath = join(tempDir, 'types.ts');
+        const outputPath = join(tempDir, 'schema.ts');
+        writeFileSync(inputPath, mergeDeepInlineContent);
+
+        const opts = supabaseToZodOptionsSchema.parse({
+          input: inputPath,
+          output: outputPath,
+          schema: ['public'],
+          verbose: false,
+        });
+
+        const result = await generateContent(opts);
+
+        expect(result).toBeDefined();
+        expect(result?.rawSchemasFileContent).toContain('publicPostsRowSchema');
+        expect(result?.rawSchemasFileContent).toContain('publicPostsInsertSchema');
+        expect(result?.rawSchemasFileContent).toContain('publicPostStatusSchema');
+      } finally {
+        rmSync(tempDir, { recursive: true, force: true });
+      }
+    });
   });
 });
