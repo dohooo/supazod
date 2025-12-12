@@ -145,12 +145,34 @@ function processSourceFile(
 function isDatabaseDefinition(
   node: ts.Node,
 ): node is ts.TypeAliasDeclaration | ts.InterfaceDeclaration {
-  return (
-    (ts.isTypeAliasDeclaration(node) &&
-      ts.isTypeLiteralNode(node.type) &&
-      node.name.text === 'Database') ||
-    (ts.isInterfaceDeclaration(node) && node.name.text === 'Database')
-  );
+  if (ts.isInterfaceDeclaration(node) && node.name.text === 'Database') {
+    return true;
+  }
+
+  if (ts.isTypeAliasDeclaration(node) && node.name.text === 'Database') {
+    // Direct type literal: type Database = { ... }
+    if (ts.isTypeLiteralNode(node.type)) {
+      return true;
+    }
+    // MergeDeep pattern: type Database = MergeDeep<A, B>
+    if (ts.isTypeReferenceNode(node.type) && isMergeDeepReference(node.type)) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
+/**
+ * Check if a type reference is a MergeDeep/MergeDeepStrict call
+ */
+function isMergeDeepReference(node: ts.TypeReferenceNode): boolean {
+  const typeName = node.typeName;
+  if (ts.isIdentifier(typeName)) {
+    const name = typeName.text;
+    return name === 'MergeDeep' || name === 'MergeDeepStrict';
+  }
+  return false;
 }
 
 function isJsonTypeAlias(node: ts.Node): node is ts.TypeAliasDeclaration {
@@ -161,13 +183,105 @@ function processDatabaseNode(
   node: ts.TypeAliasDeclaration | ts.InterfaceDeclaration,
   context: NodeProcessorContext,
 ) {
-  if (ts.isTypeAliasDeclaration(node) && ts.isTypeLiteralNode(node.type)) {
-    node.type.members.forEach((member: ts.TypeElement) =>
-      processSchemaNode(member, context),
-    );
-  } else {
-    node.forEachChild((child) => processSchemaNode(child, context));
+  if (ts.isTypeAliasDeclaration(node)) {
+    // Direct type literal: type Database = { ... }
+    if (ts.isTypeLiteralNode(node.type)) {
+      node.type.members.forEach((member: ts.TypeElement) =>
+        processSchemaNode(member, context),
+      );
+      return;
+    }
+
+    // MergeDeep pattern: type Database = MergeDeep<A, B>
+    if (ts.isTypeReferenceNode(node.type) && isMergeDeepReference(node.type)) {
+      const typeLiteral = extractTypeLiteralFromMergeDeep(
+        node.type,
+        context.sourceFile,
+      );
+      if (typeLiteral) {
+        typeLiteral.members.forEach((member: ts.TypeElement) =>
+          processSchemaNode(member, context),
+        );
+      }
+      return;
+    }
   }
+
+  // Interface declaration
+  node.forEachChild((child) => processSchemaNode(child, context));
+}
+
+/**
+ * Extract the base type literal from a MergeDeep<A, B> expression.
+ * This function handles:
+ * - MergeDeep<TypeLiteral, ...> - inline type literal as first argument
+ * - MergeDeep<TypeReference, ...> - reference to another type
+ */
+function extractTypeLiteralFromMergeDeep(
+  node: ts.TypeReferenceNode,
+  sourceFile: ts.SourceFile,
+): ts.TypeLiteralNode | null {
+  const typeArgs = node.typeArguments;
+  if (!typeArgs || typeArgs.length < 1) {
+    logger.warn('MergeDeep has no type arguments');
+    return null;
+  }
+
+  const firstArg = typeArgs[0];
+
+  // Case 1: First argument is a type literal
+  if (ts.isTypeLiteralNode(firstArg)) {
+    return firstArg;
+  }
+
+  // Case 2: First argument is a type reference (e.g., DatabaseGenerated)
+  if (ts.isTypeReferenceNode(firstArg)) {
+    const resolvedType = resolveTypeReference(firstArg, sourceFile);
+    if (resolvedType && ts.isTypeLiteralNode(resolvedType)) {
+      return resolvedType;
+    }
+  }
+
+  logger.warn(
+    `Unable to extract type literal from MergeDeep first argument: ${ts.SyntaxKind[firstArg.kind]}`,
+  );
+  return null;
+}
+
+/**
+ * Resolve a type reference to its actual type definition
+ */
+function resolveTypeReference(
+  node: ts.TypeReferenceNode,
+  sourceFile: ts.SourceFile,
+): ts.TypeNode | null {
+  const typeName = node.typeName;
+  if (!ts.isIdentifier(typeName)) {
+    return null;
+  }
+
+  const targetName = typeName.text;
+
+  // Search for the type alias declaration in the source file
+  let foundType: ts.TypeNode | null = null;
+
+  function visit(n: ts.Node) {
+    if (foundType) return;
+
+    if (
+      ts.isTypeAliasDeclaration(n) &&
+      n.name.text === targetName &&
+      ts.isTypeLiteralNode(n.type)
+    ) {
+      foundType = n.type;
+      return;
+    }
+
+    ts.forEachChild(n, visit);
+  }
+
+  visit(sourceFile);
+  return foundType;
 }
 
 function processSchemaNode(node: ts.Node, context: NodeProcessorContext) {
@@ -692,22 +806,41 @@ export function getAllSchemas(sourceText: string): string[] {
 
   const schemas: string[] = [];
 
+  function extractSchemasFromTypeLiteral(typeLiteral: ts.TypeLiteralNode) {
+    typeLiteral.members.forEach((member) => {
+      if (ts.isPropertySignature(member) && member.name) {
+        const schemaName = member.name.getText(sourceFile);
+        logger.debug(`Found schema: ${schemaName}`);
+        schemas.push(schemaName);
+      } else {
+        logger.debug(
+          `Skipped member: ${ts.SyntaxKind[member.kind]} (not a property signature or no name)`,
+        );
+      }
+    });
+  }
+
   function visit(node: ts.Node) {
     if (ts.isTypeAliasDeclaration(node) && node.name.text === 'Database') {
       logger.debug('Found Database type alias');
 
+      // Direct type literal: type Database = { ... }
       if (ts.isTypeLiteralNode(node.type)) {
-        node.type.members.forEach((member) => {
-          if (ts.isPropertySignature(member) && member.name) {
-            const schemaName = member.name.getText(sourceFile);
-            logger.debug(`Found schema: ${schemaName}`);
-            schemas.push(schemaName);
-          } else {
-            logger.debug(
-              `Skipped member: ${ts.SyntaxKind[member.kind]} (not a property signature or no name)`,
-            );
-          }
-        });
+        extractSchemasFromTypeLiteral(node.type);
+      }
+      // MergeDeep pattern: type Database = MergeDeep<A, B>
+      else if (
+        ts.isTypeReferenceNode(node.type) &&
+        isMergeDeepReference(node.type)
+      ) {
+        logger.debug('Found MergeDeep pattern');
+        const typeLiteral = extractTypeLiteralFromMergeDeep(
+          node.type,
+          sourceFile,
+        );
+        if (typeLiteral) {
+          extractSchemasFromTypeLiteral(typeLiteral);
+        }
       }
     }
 

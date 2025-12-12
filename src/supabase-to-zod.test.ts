@@ -1,4 +1,5 @@
-import { readFileSync } from 'node:fs';
+import { readFileSync, writeFileSync, mkdtempSync, rmSync } from 'node:fs';
+import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath } from 'url';
 import { describe, expect, it } from 'vitest';
@@ -546,5 +547,716 @@ describe('supazod', () => {
     expect(result?.rawTypesFileContent).toContain(
       'typeof generated.publicUserStatusSchema',
     );
+  });
+
+  describe('MergeDeep support', () => {
+    it('should generate schemas from types using MergeDeep pattern', async () => {
+      // Create a temporary directory for test files
+      const tempDir = mkdtempSync(join(tmpdir(), 'supazod-test-'));
+
+      try {
+        // This is the typical pattern users have when extending Supabase types with MergeDeep
+        const mergeDeepTypesContent = `
+import { MergeDeep } from 'type-fest';
+
+export type Json =
+  | string
+  | number
+  | boolean
+  | null
+  | { [key: string]: Json }
+  | Json[];
+
+// This represents the auto-generated types from Supabase CLI
+type DatabaseGenerated = {
+  public: {
+    Tables: {
+      users: {
+        Row: {
+          id: string;
+          email: string;
+          metadata: Json | null;
+        };
+        Insert: {
+          id?: string;
+          email: string;
+          metadata?: Json | null;
+        };
+        Update: {
+          id?: string;
+          email?: string;
+          metadata?: Json | null;
+        };
+        Relationships: [];
+      };
+    };
+    Views: {};
+    Functions: {};
+    Enums: {
+      user_role: 'admin' | 'user' | 'guest';
+    };
+    CompositeTypes: {};
+  };
+};
+
+// Custom type for the metadata JSON field
+type UserMetadata = {
+  firstName: string;
+  lastName: string;
+  preferences: {
+    theme: 'light' | 'dark';
+    notifications: boolean;
+  };
+};
+
+// This is how users extend types with MergeDeep
+export type Database = MergeDeep<
+  DatabaseGenerated,
+  {
+    public: {
+      Tables: {
+        users: {
+          Row: {
+            metadata: UserMetadata | null;
+          };
+          Insert: {
+            metadata?: UserMetadata | null;
+          };
+          Update: {
+            metadata?: UserMetadata | null;
+          };
+        };
+      };
+    };
+  }
+>;
+`;
+
+        const inputPath = join(tempDir, 'types.ts');
+        const outputPath = join(tempDir, 'schema.ts');
+        writeFileSync(inputPath, mergeDeepTypesContent);
+
+        const opts = supabaseToZodOptionsSchema.parse({
+          input: inputPath,
+          output: outputPath,
+          schema: ['public'],
+          verbose: false,
+        });
+
+        const result = await generateContent(opts);
+
+        // Verify that schemas were generated for the tables
+        expect(result).toBeDefined();
+        expect(result?.rawSchemasFileContent).toContain('publicUsersRowSchema');
+        expect(result?.rawSchemasFileContent).toContain(
+          'publicUsersInsertSchema',
+        );
+        expect(result?.rawSchemasFileContent).toContain(
+          'publicUsersUpdateSchema',
+        );
+        // Verify enum was generated
+        expect(result?.rawSchemasFileContent).toContain('publicUserRoleSchema');
+      } finally {
+        // Cleanup temp directory
+        rmSync(tempDir, { recursive: true, force: true });
+      }
+    });
+
+    it('should generate schemas when Database type uses MergeDeep with inline generated types', async () => {
+      const tempDir = mkdtempSync(join(tmpdir(), 'supazod-test-'));
+
+      try {
+        // Alternative pattern where DatabaseGenerated is defined inline
+        const mergeDeepInlineContent = `
+import type { MergeDeep } from 'type-fest';
+
+export type Json =
+  | string
+  | number
+  | boolean
+  | null
+  | { [key: string]: Json }
+  | Json[];
+
+export type Database = MergeDeep<
+  {
+    public: {
+      Tables: {
+        posts: {
+          Row: {
+            id: number;
+            title: string;
+            content: Json | null;
+          };
+          Insert: {
+            id?: number;
+            title: string;
+            content?: Json | null;
+          };
+          Update: {
+            id?: number;
+            title?: string;
+            content?: Json | null;
+          };
+          Relationships: [];
+        };
+      };
+      Views: {};
+      Functions: {};
+      Enums: {
+        post_status: 'draft' | 'published' | 'archived';
+      };
+      CompositeTypes: {};
+    };
+  },
+  {
+    public: {
+      Tables: {
+        posts: {
+          Row: {
+            content: { body: string; summary: string } | null;
+          };
+        };
+      };
+    };
+  }
+>;
+`;
+
+        const inputPath = join(tempDir, 'types.ts');
+        const outputPath = join(tempDir, 'schema.ts');
+        writeFileSync(inputPath, mergeDeepInlineContent);
+
+        const opts = supabaseToZodOptionsSchema.parse({
+          input: inputPath,
+          output: outputPath,
+          schema: ['public'],
+          verbose: false,
+        });
+
+        const result = await generateContent(opts);
+
+        expect(result).toBeDefined();
+        expect(result?.rawSchemasFileContent).toContain('publicPostsRowSchema');
+        expect(result?.rawSchemasFileContent).toContain(
+          'publicPostsInsertSchema',
+        );
+        expect(result?.rawSchemasFileContent).toContain(
+          'publicPostStatusSchema',
+        );
+      } finally {
+        rmSync(tempDir, { recursive: true, force: true });
+      }
+    });
+
+    it('should handle MergeDeep with multiple schemas, Functions, CompositeTypes, and Views', async () => {
+      const tempDir = mkdtempSync(join(tmpdir(), 'supazod-test-'));
+
+      try {
+        // Complex scenario with multiple schemas, all type categories
+        const complexMergeDeepContent = `
+import { MergeDeep } from 'type-fest';
+
+export type Json =
+  | string
+  | number
+  | boolean
+  | null
+  | { [key: string]: Json }
+  | Json[];
+
+type DatabaseGenerated = {
+  public: {
+    Tables: {
+      users: {
+        Row: {
+          id: string;
+          email: string;
+          profile_data: Json | null;
+          role: Database['public']['Enums']['user_role'];
+          address: Database['public']['CompositeTypes']['address_type'] | null;
+        };
+        Insert: {
+          id?: string;
+          email: string;
+          profile_data?: Json | null;
+          role?: Database['public']['Enums']['user_role'];
+          address?: Database['public']['CompositeTypes']['address_type'] | null;
+        };
+        Update: {
+          id?: string;
+          email?: string;
+          profile_data?: Json | null;
+          role?: Database['public']['Enums']['user_role'];
+          address?: Database['public']['CompositeTypes']['address_type'] | null;
+        };
+        Relationships: [];
+      };
+      orders: {
+        Row: {
+          id: number;
+          user_id: string;
+          status: Database['public']['Enums']['order_status'];
+          items: Json;
+          total_amount: number;
+        };
+        Insert: {
+          id?: number;
+          user_id: string;
+          status?: Database['public']['Enums']['order_status'];
+          items: Json;
+          total_amount: number;
+        };
+        Update: {
+          id?: number;
+          user_id?: string;
+          status?: Database['public']['Enums']['order_status'];
+          items?: Json;
+          total_amount?: number;
+        };
+        Relationships: [];
+      };
+    };
+    Views: {
+      active_users: {
+        Row: {
+          id: string | null;
+          email: string | null;
+          last_active: string | null;
+        };
+      };
+      order_summary: {
+        Row: {
+          user_id: string | null;
+          total_orders: number | null;
+          total_spent: number | null;
+        };
+      };
+    };
+    Functions: {
+      get_user_orders: {
+        Args: { user_id_param: string; limit_param?: number };
+        Returns: Json;
+      };
+      calculate_discount: {
+        Args: { order_id: number; coupon_code: string };
+        Returns: number;
+      };
+      get_user_role: {
+        Args: { user_id: string };
+        Returns: Database['public']['Enums']['user_role'];
+      };
+    };
+    Enums: {
+      user_role: 'admin' | 'moderator' | 'user' | 'guest';
+      order_status: 'pending' | 'processing' | 'shipped' | 'delivered' | 'cancelled';
+    };
+    CompositeTypes: {
+      address_type: {
+        street: string | null;
+        city: string | null;
+        country: string | null;
+        postal_code: string | null;
+      };
+      money_type: {
+        amount: number | null;
+        currency: string | null;
+      };
+    };
+  };
+  analytics: {
+    Tables: {
+      events: {
+        Row: {
+          id: string;
+          event_type: string;
+          payload: Json;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          event_type: string;
+          payload: Json;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          event_type?: string;
+          payload?: Json;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
+    };
+    Views: {};
+    Functions: {
+      aggregate_events: {
+        Args: { start_date: string; end_date: string };
+        Returns: Json;
+      };
+    };
+    Enums: {
+      event_category: 'page_view' | 'click' | 'conversion' | 'error';
+    };
+    CompositeTypes: {};
+  };
+};
+
+// Custom type overrides for JSON fields
+type ProfileData = {
+  firstName: string;
+  lastName: string;
+  avatar_url: string | null;
+  preferences: {
+    theme: 'light' | 'dark' | 'system';
+    language: string;
+    notifications: {
+      email: boolean;
+      push: boolean;
+      sms: boolean;
+    };
+  };
+};
+
+type OrderItem = {
+  product_id: string;
+  name: string;
+  quantity: number;
+  unit_price: number;
+};
+
+export type Database = MergeDeep<
+  DatabaseGenerated,
+  {
+    public: {
+      Tables: {
+        users: {
+          Row: {
+            profile_data: ProfileData | null;
+          };
+          Insert: {
+            profile_data?: ProfileData | null;
+          };
+          Update: {
+            profile_data?: ProfileData | null;
+          };
+        };
+        orders: {
+          Row: {
+            items: OrderItem[];
+          };
+          Insert: {
+            items: OrderItem[];
+          };
+          Update: {
+            items?: OrderItem[];
+          };
+        };
+      };
+    };
+  }
+>;
+`;
+
+        const inputPath = join(tempDir, 'types.ts');
+        const outputPath = join(tempDir, 'schema.ts');
+        writeFileSync(inputPath, complexMergeDeepContent);
+
+        // Test with public schema
+        const publicOpts = supabaseToZodOptionsSchema.parse({
+          input: inputPath,
+          output: outputPath,
+          schema: ['public'],
+          verbose: false,
+        });
+
+        const publicResult = await generateContent(publicOpts);
+
+        expect(publicResult).toBeDefined();
+        // Tables
+        expect(publicResult?.rawSchemasFileContent).toContain(
+          'publicUsersRowSchema',
+        );
+        expect(publicResult?.rawSchemasFileContent).toContain(
+          'publicUsersInsertSchema',
+        );
+        expect(publicResult?.rawSchemasFileContent).toContain(
+          'publicUsersUpdateSchema',
+        );
+        expect(publicResult?.rawSchemasFileContent).toContain(
+          'publicOrdersRowSchema',
+        );
+        expect(publicResult?.rawSchemasFileContent).toContain(
+          'publicOrdersInsertSchema',
+        );
+        // Views
+        expect(publicResult?.rawSchemasFileContent).toContain(
+          'publicActiveUsersRowSchema',
+        );
+        expect(publicResult?.rawSchemasFileContent).toContain(
+          'publicOrderSummaryRowSchema',
+        );
+        // Functions
+        expect(publicResult?.rawSchemasFileContent).toContain(
+          'publicGetUserOrdersArgsSchema',
+        );
+        expect(publicResult?.rawSchemasFileContent).toContain(
+          'publicGetUserOrdersReturnsSchema',
+        );
+        expect(publicResult?.rawSchemasFileContent).toContain(
+          'publicCalculateDiscountArgsSchema',
+        );
+        expect(publicResult?.rawSchemasFileContent).toContain(
+          'publicCalculateDiscountReturnsSchema',
+        );
+        expect(publicResult?.rawSchemasFileContent).toContain(
+          'publicGetUserRoleArgsSchema',
+        );
+        // Enums
+        expect(publicResult?.rawSchemasFileContent).toContain(
+          'publicUserRoleSchema',
+        );
+        expect(publicResult?.rawSchemasFileContent).toContain(
+          'publicOrderStatusSchema',
+        );
+        // CompositeTypes
+        expect(publicResult?.rawSchemasFileContent).toContain(
+          'publicAddressTypeSchema',
+        );
+        expect(publicResult?.rawSchemasFileContent).toContain(
+          'publicMoneyTypeSchema',
+        );
+
+        // Test with analytics schema
+        const analyticsOpts = supabaseToZodOptionsSchema.parse({
+          input: inputPath,
+          output: outputPath,
+          schema: ['analytics'],
+          verbose: false,
+        });
+
+        const analyticsResult = await generateContent(analyticsOpts);
+
+        expect(analyticsResult).toBeDefined();
+        expect(analyticsResult?.rawSchemasFileContent).toContain(
+          'analyticsEventsRowSchema',
+        );
+        expect(analyticsResult?.rawSchemasFileContent).toContain(
+          'analyticsAggregateEventsArgsSchema',
+        );
+        expect(analyticsResult?.rawSchemasFileContent).toContain(
+          'analyticsEventCategorySchema',
+        );
+
+        // Test with all schemas (empty array triggers auto-detection)
+        const allSchemasOpts = supabaseToZodOptionsSchema.parse({
+          input: inputPath,
+          output: outputPath,
+          schema: [],
+          verbose: false,
+        });
+
+        const allResult = await generateContent(allSchemasOpts);
+        expect(allResult).toBeDefined();
+        // Should contain schemas from both public and analytics
+        expect(allResult?.rawSchemasFileContent).toContain(
+          'publicUsersRowSchema',
+        );
+        expect(allResult?.rawSchemasFileContent).toContain(
+          'analyticsEventsRowSchema',
+        );
+      } finally {
+        rmSync(tempDir, { recursive: true, force: true });
+      }
+    });
+
+    it('should support MergeDeepStrict variant', async () => {
+      const tempDir = mkdtempSync(join(tmpdir(), 'supazod-test-'));
+
+      try {
+        // Test with MergeDeepStrict (stricter version of MergeDeep)
+        const mergeDeepStrictContent = `
+import type { MergeDeepStrict } from 'type-fest';
+
+export type Json =
+  | string
+  | number
+  | boolean
+  | null
+  | { [key: string]: Json }
+  | Json[];
+
+type BaseDatabase = {
+  public: {
+    Tables: {
+      products: {
+        Row: {
+          id: string;
+          name: string;
+          description: string | null;
+          price: number;
+          metadata: Json | null;
+          category: Database['public']['Enums']['product_category'];
+        };
+        Insert: {
+          id?: string;
+          name: string;
+          description?: string | null;
+          price: number;
+          metadata?: Json | null;
+          category: Database['public']['Enums']['product_category'];
+        };
+        Update: {
+          id?: string;
+          name?: string;
+          description?: string | null;
+          price?: number;
+          metadata?: Json | null;
+          category?: Database['public']['Enums']['product_category'];
+        };
+        Relationships: [];
+      };
+      inventory: {
+        Row: {
+          product_id: string;
+          warehouse_id: string;
+          quantity: number;
+          last_updated: string;
+        };
+        Insert: {
+          product_id: string;
+          warehouse_id: string;
+          quantity: number;
+          last_updated?: string;
+        };
+        Update: {
+          product_id?: string;
+          warehouse_id?: string;
+          quantity?: number;
+          last_updated?: string;
+        };
+        Relationships: [];
+      };
+    };
+    Views: {
+      low_stock_products: {
+        Row: {
+          product_id: string | null;
+          product_name: string | null;
+          total_quantity: number | null;
+        };
+      };
+    };
+    Functions: {
+      restock_product: {
+        Args: { product_id: string; quantity: number; warehouse_id: string };
+        Returns: boolean;
+      };
+      get_product_availability: {
+        Args: { product_id: string };
+        Returns: Json;
+      };
+    };
+    Enums: {
+      product_category: 'electronics' | 'clothing' | 'food' | 'books' | 'other';
+    };
+    CompositeTypes: {
+      stock_info: {
+        warehouse_id: string | null;
+        quantity: number | null;
+        reserved: number | null;
+      };
+    };
+  };
+};
+
+type ProductMetadata = {
+  sku: string;
+  brand: string;
+  weight_kg: number;
+  dimensions: {
+    length: number;
+    width: number;
+    height: number;
+  };
+  tags: string[];
+};
+
+// Using MergeDeepStrict instead of MergeDeep
+export type Database = MergeDeepStrict<
+  BaseDatabase,
+  {
+    public: {
+      Tables: {
+        products: {
+          Row: {
+            metadata: ProductMetadata | null;
+          };
+          Insert: {
+            metadata?: ProductMetadata | null;
+          };
+          Update: {
+            metadata?: ProductMetadata | null;
+          };
+        };
+      };
+    };
+  }
+>;
+`;
+
+        const inputPath = join(tempDir, 'types.ts');
+        const outputPath = join(tempDir, 'schema.ts');
+        writeFileSync(inputPath, mergeDeepStrictContent);
+
+        const opts = supabaseToZodOptionsSchema.parse({
+          input: inputPath,
+          output: outputPath,
+          schema: ['public'],
+          verbose: false,
+        });
+
+        const result = await generateContent(opts);
+
+        expect(result).toBeDefined();
+        // Tables
+        expect(result?.rawSchemasFileContent).toContain(
+          'publicProductsRowSchema',
+        );
+        expect(result?.rawSchemasFileContent).toContain(
+          'publicProductsInsertSchema',
+        );
+        expect(result?.rawSchemasFileContent).toContain(
+          'publicProductsUpdateSchema',
+        );
+        expect(result?.rawSchemasFileContent).toContain(
+          'publicInventoryRowSchema',
+        );
+        // Views
+        expect(result?.rawSchemasFileContent).toContain(
+          'publicLowStockProductsRowSchema',
+        );
+        // Functions
+        expect(result?.rawSchemasFileContent).toContain(
+          'publicRestockProductArgsSchema',
+        );
+        expect(result?.rawSchemasFileContent).toContain(
+          'publicRestockProductReturnsSchema',
+        );
+        expect(result?.rawSchemasFileContent).toContain(
+          'publicGetProductAvailabilityArgsSchema',
+        );
+        // Enums
+        expect(result?.rawSchemasFileContent).toContain(
+          'publicProductCategorySchema',
+        );
+        // CompositeTypes
+        expect(result?.rawSchemasFileContent).toContain(
+          'publicStockInfoSchema',
+        );
+      } finally {
+        rmSync(tempDir, { recursive: true, force: true });
+      }
+    });
   });
 });
