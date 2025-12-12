@@ -11,7 +11,12 @@ Generate [Zod](https://github.com/colinhacks/zod) schemas from Typescript types 
 ```sh
 $ pnpm add --D supazod
 $ supabase gen types typescript --local > types.ts
+
+# Generate schemas with separate types file
 $ pnpm supazod -i types.ts -o schemas.ts -t schemas.d.ts -s public,schema_a,schema_b
+
+# Or generate everything in a single file with inline types
+$ pnpm supazod -i types.ts -o schemas.ts --inline-types
 ```
 
 That's it! Check your `schemas.ts` file - you should have Zod schemas generated for all your tables, views, enums and functions.
@@ -42,6 +47,49 @@ export const publicGetStatusArgsSchema = z.object({...});
 // TypeScript types without "Schema" suffix
 export type PublicUsersInsert = z.infer<typeof generated.publicUsersInsertSchema>;
 export type PublicUserStatus = z.infer<typeof generated.publicUserStatusSchema>;
+```
+
+## Inline Types
+
+Use `--inline-types` (or `-I`) to generate both Zod schemas and TypeScript types in a single file:
+
+```sh
+$ pnpm supazod -i types.ts -o schemas.ts --inline-types
+```
+
+This generates a single `schemas.ts` file with everything included:
+
+```typescript
+// schemas.ts - single file output
+import { z } from "zod";
+
+export const publicUsersRowSchema = z.object({
+  id: z.number(),
+  username: z.string(),
+  // ...
+});
+
+export const publicUserStatusSchema = z.union([
+  z.literal("ONLINE"),
+  z.literal("OFFLINE"),
+]);
+
+// Types are included directly in the same file
+export type PublicUsersRow = z.infer<typeof publicUsersRowSchema>;
+export type PublicUserStatus = z.infer<typeof publicUserStatusSchema>;
+```
+
+This is useful when you prefer a simpler setup without managing separate `.d.ts` files.
+
+You can also enable this via the config file:
+
+```typescript
+// supazod.config.ts
+import { defineConfig } from 'supazod';
+
+export default defineConfig({
+  inlineTypes: true,
+});
 ```
 
 ## Configuration
@@ -107,7 +155,8 @@ supazod [options]
 -o, --output <path>        Output Zod schemas file
 -t, --types-output <path>  Output type definitions (optional)
 -s, --schema <name>        Schema to process (optional, defaults to all)
---verbose                  Enable debug logs
+-I, --inline-types         Include types in schema file (no separate .d.ts)
+-v, --verbose              Enable debug logs
 
 # Naming Configuration (overrides config file)
 --table-operation-pattern <pattern>    Pattern for table operations
@@ -156,6 +205,7 @@ Patterns now preserve any separators you include (like `_` or `-`) in the emitte
 - 🎯 **Complete Coverage**: Full support for tables, views, enums, functions and composite types
 - 🔧 **Multi-Schema**: Process multiple database schemas with a single command
 - 📦 **Type Declarations**: Generate corresponding `.d.ts` files alongside Zod schemas
+- 📄 **Inline Types**: Option to include types directly in the schema file (`--inline-types`)
 - ⚙️ **Type-Safe Configuration**: TypeScript config with IntelliSense support
 - 🏷️ **Flexible Naming**: Customizable naming patterns with placeholders
 - ✨ **Clean Output**: Fixed schema naming (no more "SchemaSchema" duplication)
@@ -169,6 +219,7 @@ const result = await generateContent({
   input: './types.ts',
   output: './schema.ts',
   schema: ['public'],
+  inlineTypes: true, // Include types in schema file
   namingConfig: {
     tableOperationPattern: '{schema}_{table}_{operation}',
     enumPattern: '{schema}_{name}_Enum',
