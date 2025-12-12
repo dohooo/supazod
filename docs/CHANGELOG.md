@@ -1,3 +1,10 @@
+# [4.4.0](https://github.com/dohooo/supazod/compare/v4.3.0...v4.4.0) (2025-12-12)
+
+
+### Features
+
+* add inline types option ([698f3c5](https://github.com/dohooo/supazod/commit/698f3c5630a45f1b73e4870b7e290d8f4e1aff7b)), closes [#5](https://github.com/dohooo/supazod/issues/5)
+
 # [4.3.0](https://github.com/dohooo/supazod/compare/v4.2.0...v4.3.0) (2025-12-12)
 
 
