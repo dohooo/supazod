@@ -1,3 +1,10 @@
+## [4.4.1](https://github.com/dohooo/supazod/compare/v4.4.0...v4.4.1) (2025-12-12)
+
+
+### Bug Fixes
+
+* **ci:** add --skipLibCheck to type check ([67942d9](https://github.com/dohooo/supazod/commit/67942d94ca7cd3c5ac8378f84f29b8a98397db04))
+
 # [4.4.0](https://github.com/dohooo/supazod/compare/v4.3.0...v4.4.0) (2025-12-12)
 
 
