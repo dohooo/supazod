@@ -209,6 +209,43 @@ Patterns now preserve any separators you include (like `_` or `-`) in the emitte
 - ⚙️ **Type-Safe Configuration**: TypeScript config with IntelliSense support
 - 🏷️ **Flexible Naming**: Customizable naming patterns with placeholders
 - ✨ **Clean Output**: Fixed schema naming (no more "SchemaSchema" duplication)
+- 🔀 **MergeDeep Support**: Works with `type-fest`'s MergeDeep pattern for extending Supabase types
+
+## MergeDeep Support
+
+Supazod supports the [MergeDeep pattern from type-fest](https://github.com/sindresorhus/type-fest#mergedeep), commonly used to override JSON field types in Supabase generated types. The base type must be defined in the **same file** (imported type references are not supported).
+
+<details>
+<summary><b>View supported patterns and limitations</b></summary>
+
+### Supported Patterns
+
+✅ **Inline type literal as first argument:**
+
+```typescript
+export type Database = MergeDeep<{ public: { Tables: { ... } } }, { /* overrides */ }>;
+```
+
+✅ **Type alias defined in the same file:**
+
+```typescript
+type DatabaseGenerated = { public: { Tables: { ... } } };  // same file
+export type Database = MergeDeep<DatabaseGenerated, { /* overrides */ }>;
+```
+
+### Known Limitations
+
+❌ **Imported type references are NOT supported:**
+
+```typescript
+import type { Database as DatabaseGenerated } from './database.gen';  // different file
+export type Database = MergeDeep<DatabaseGenerated, { /* overrides */ }>;
+// Error: Unable to extract type literal from MergeDeep first argument: TypeReference
+```
+
+**Workarounds:** Copy the generated types into your file, or use a pre-processing script to inline types before running supazod.
+
+</details>
 
 ## Programmatic API
 
