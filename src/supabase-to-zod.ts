@@ -16,6 +16,7 @@ import {
   type SchemaNameMapping,
 } from './lib';
 import { replaceGeneratedComment } from './lib/comment-utils';
+import { validateFileEncoding } from './lib/encoding-utils';
 import { logger } from './lib/logger';
 import { defaultTypeNameTransformer } from './lib/transform-name-utils';
 import { transformTypeNames } from './lib/transform-type-names';
@@ -165,6 +166,9 @@ export async function generateContent(opts: SupabaseToZodOptions) {
   const outputPath = isAbsolute(opts.output)
     ? opts.output
     : join(process.cwd(), opts.output);
+
+  logger.info('Validating file encoding...', '🔍');
+  await validateFileEncoding(inputPath);
 
   logger.info('Reading input file...', '📦');
   const sourceText = await fs.readFile(inputPath, 'utf-8');
