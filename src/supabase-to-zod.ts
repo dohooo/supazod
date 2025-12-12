@@ -228,7 +228,13 @@ export async function generateContent(opts: SupabaseToZodOptions) {
       schemaNameOverrides,
     );
 
-    let finalSchemaContent = schemaContentWithOverrides;
+    // Convert z.union([z.literal("A"), z.literal("B"), ...]) to z.enum(["A", "B", ...])
+    // This provides better error messages when validation fails
+    const schemaContentWithEnums = convertUnionLiteralsToEnum(
+      schemaContentWithOverrides,
+    );
+
+    let finalSchemaContent = schemaContentWithEnums;
 
     // Handle inline types: append type exports directly to schema file
     if (opts.inlineTypes) {
@@ -403,6 +409,54 @@ function applySchemaNameOverrides(
 
 function escapeRegExp(value: string): string {
   return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+/**
+ * Convert z.union([z.literal("A"), z.literal("B"), ...]) to z.enum(["A", "B", ...])
+ * Also convert standalone z.literal("A") to z.enum(["A"]) for single-value enums.
+ *
+ * This transformation provides better error messages when validation fails.
+ * Instead of showing only one expected value (e.g., Invalid input: expected "Scraped"),
+ * z.enum shows all possible options (e.g., Invalid enum value. Expected 'A' | 'B' | 'C').
+ */
+function convertUnionLiteralsToEnum(content: string): string {
+  // First, convert z.union([z.literal("..."), z.literal("..."), ...]) to z.enum
+  const unionLiteralPattern =
+    /z\.union\(\[(?:z\.literal\(["']([^"']+)["']\)(?:,\s*)?)+\]\)/g;
+
+  let result = content.replace(unionLiteralPattern, (match) => {
+    // Extract all literal values from the match
+    const literalPattern = /z\.literal\(["']([^"']+)["']\)/g;
+    const values: string[] = [];
+    let literalMatch;
+
+    while ((literalMatch = literalPattern.exec(match)) !== null) {
+      values.push(literalMatch[1]);
+    }
+
+    if (values.length === 0) {
+      return match; // No literals found, return original
+    }
+
+    // Build z.enum(["A", "B", ...]) format
+    const enumValues = values.map((v) => `"${v}"`).join(', ');
+    return `z.enum([${enumValues}])`;
+  });
+
+  // Then, convert standalone z.literal("...") assignments to z.enum for enum schemas
+  // This handles single-value enums like: export const xSchema = z.literal("only_option");
+  // Pattern matches: = z.literal("..."); at the end of a schema assignment
+  const standaloneLiteralPattern =
+    /(export const \w+Schema\s*=\s*)z\.literal\(["']([^"']+)["']\)(\s*;)/g;
+
+  result = result.replace(
+    standaloneLiteralPattern,
+    (_, prefix, value, suffix) => {
+      return `${prefix}z.enum(["${value}"])${suffix}`;
+    },
+  );
+
+  return result;
 }
 
 function buildTypeNameOverrides(
