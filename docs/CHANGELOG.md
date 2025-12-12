@@ -1,3 +1,10 @@
+# [4.5.0](https://github.com/dohooo/supazod/compare/v4.4.1...v4.5.0) (2025-12-12)
+
+
+### Features
+
+* use z.enum instead of z.union for PostgreSQL enums ([35e26df](https://github.com/dohooo/supazod/commit/35e26df42b5ba1033c14382c22b6af1a57d51221)), closes [#12](https://github.com/dohooo/supazod/issues/12)
+
 ## [4.4.1](https://github.com/dohooo/supazod/compare/v4.4.0...v4.4.1) (2025-12-12)
 
 
