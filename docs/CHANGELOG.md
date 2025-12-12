@@ -1,3 +1,10 @@
+# [4.3.0](https://github.com/dohooo/supazod/compare/v4.2.0...v4.3.0) (2025-12-12)
+
+
+### Features
+
+* detect UTF-16 encoding and provide helpful error message ([9075471](https://github.com/dohooo/supazod/commit/90754719e653731d32cdc127f265986a918f6ca6)), closes [#14](https://github.com/dohooo/supazod/issues/14)
+
 # [4.2.0](https://github.com/dohooo/supazod/compare/v4.1.0...v4.2.0) (2025-12-12)
 
 
