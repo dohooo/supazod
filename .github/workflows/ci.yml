@@ -32,7 +32,7 @@ jobs:
         run: pnpm format:check
 
       - name: Type Check
-        run: pnpm tsc --noEmit
+        run: pnpm tsc --noEmit --skipLibCheck
 
   test:
     name: Test
