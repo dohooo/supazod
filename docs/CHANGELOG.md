@@ -1,3 +1,10 @@
+# [4.2.0](https://github.com/dohooo/supazod/compare/v4.1.0...v4.2.0) (2025-12-12)
+
+
+### Features
+
+* add MergeDeep support for extended Database types ([bb468c3](https://github.com/dohooo/supazod/commit/bb468c375306eec1671c05d2740367e3663989b5)), closes [#10](https://github.com/dohooo/supazod/issues/10)
+
 # [4.1.0](https://github.com/dohooo/supazod/compare/v4.0.0...v4.1.0) (2025-09-21)
 
 
