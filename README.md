@@ -16,6 +16,18 @@ $ pnpm supazod -i types.ts -o schemas.ts -t schemas.d.ts -s public,schema_a,sche
 
 That's it! Check your `schemas.ts` file - you should have Zod schemas generated for all your tables, views, enums and functions.
 
+### PowerShell Users (Windows)
+
+PowerShell's `>` redirect operator outputs UTF-16 by default, which supazod cannot read. Use `Out-File` with `-Encoding utf8` instead:
+
+```powershell
+# Local database
+supabase gen types typescript --local | Out-File -FilePath types.ts -Encoding utf8
+
+# From supabase.com
+supabase gen types typescript --project-id <project-id> | Out-File -FilePath types.ts -Encoding utf8
+```
+
 ## Generated Output
 
 Supazod generates clean, consistent schema names:

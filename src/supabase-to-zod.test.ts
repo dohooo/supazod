@@ -1259,4 +1259,73 @@ export type Database = MergeDeepStrict<
       }
     });
   });
+
+  describe('UTF-16 encoding detection', () => {
+    it('should throw a helpful error when input file is UTF-16 LE encoded', async () => {
+      const tempDir = mkdtempSync(join(tmpdir(), 'supazod-utf16-test-'));
+      try {
+        const inputPath = join(tempDir, 'types.ts');
+        const outputPath = join(tempDir, 'schema.ts');
+
+        // Create a UTF-16 LE file with BOM (like PowerShell's default output)
+        const content = `export type Json = string | number | boolean | null;
+export type Database = {
+  public: {
+    Tables: {
+      users: {
+        Row: { id: string };
+        Insert: { id?: string };
+        Update: { id?: string };
+        Relationships: [];
+      };
+    };
+    Views: {};
+    Functions: {};
+    Enums: {};
+    CompositeTypes: {};
+  };
+};`;
+        const bom = Buffer.from([0xff, 0xfe]); // UTF-16 LE BOM
+        const utf16leContent = Buffer.from(content, 'utf16le');
+        const fullContent = Buffer.concat([bom, utf16leContent]);
+        writeFileSync(inputPath, fullContent);
+
+        const opts = supabaseToZodOptionsSchema.parse({
+          input: inputPath,
+          output: outputPath,
+          schema: ['public'],
+          verbose: false,
+        });
+
+        await expect(generateContent(opts)).rejects.toThrow(/UTF-16/);
+        await expect(generateContent(opts)).rejects.toThrow(/PowerShell/);
+      } finally {
+        rmSync(tempDir, { recursive: true, force: true });
+      }
+    });
+
+    it('should throw a helpful error when input file is UTF-16 LE without BOM', async () => {
+      const tempDir = mkdtempSync(join(tmpdir(), 'supazod-utf16-test-'));
+      try {
+        const inputPath = join(tempDir, 'types.ts');
+        const outputPath = join(tempDir, 'schema.ts');
+
+        // Create a UTF-16 LE file without BOM
+        const content = `export type Database = { public: { Tables: {}; Views: {}; Functions: {}; Enums: {}; CompositeTypes: {} } };`;
+        const utf16leContent = Buffer.from(content, 'utf16le');
+        writeFileSync(inputPath, utf16leContent);
+
+        const opts = supabaseToZodOptionsSchema.parse({
+          input: inputPath,
+          output: outputPath,
+          schema: ['public'],
+          verbose: false,
+        });
+
+        await expect(generateContent(opts)).rejects.toThrow(/UTF-16/);
+      } finally {
+        rmSync(tempDir, { recursive: true, force: true });
+      }
+    });
+  });
 });
