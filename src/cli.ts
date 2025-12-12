@@ -30,6 +30,10 @@ program
   )
   .option('-s, --schema [schema]', 'Specify schemas (comma-separated)', '')
   .option('-v, --verbose', 'Enable verbose logging')
+  .option(
+    '-I, --inline-types',
+    'Include inferred types in the schema file instead of a separate file',
+  )
   .option('--config <path>', 'Path to a Supazod config file')
   // Naming configuration options
   .option(

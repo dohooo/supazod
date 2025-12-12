@@ -1260,6 +1260,151 @@ export type Database = MergeDeepStrict<
     });
   });
 
+  describe('inline types feature', () => {
+    it('should generate schemas with inline types when inlineTypes is true', async () => {
+      const typesFilePath = join(EXAMPLE_DIR, 'types.ts');
+      const opts = supabaseToZodOptionsSchema.parse({
+        input: typesFilePath,
+        output: join(EXAMPLE_DIR, 'schema.ts'),
+        schema: ['public'],
+        verbose: false,
+        inlineTypes: true,
+      });
+
+      const result = await generateContent(opts);
+
+      expect(result).toBeDefined();
+      expect(result?.formatterSchemasFileContent).toBeDefined();
+
+      // Should contain schemas
+      expect(result?.formatterSchemasFileContent).toContain(
+        'export const publicUsersRowSchema',
+      );
+      expect(result?.formatterSchemasFileContent).toContain(
+        'export const publicUsersInsertSchema',
+      );
+      expect(result?.formatterSchemasFileContent).toContain(
+        'export const publicUserStatusSchema',
+      );
+
+      // Should contain inline type exports using z.infer
+      expect(result?.formatterSchemasFileContent).toContain(
+        'export type PublicUsersRow = z.infer<typeof publicUsersRowSchema>',
+      );
+      expect(result?.formatterSchemasFileContent).toContain(
+        'export type PublicUsersInsert = z.infer<typeof publicUsersInsertSchema>',
+      );
+      expect(result?.formatterSchemasFileContent).toContain(
+        'export type PublicUserStatus = z.infer<typeof publicUserStatusSchema>',
+      );
+
+      // Should NOT have a separate types file content when inlineTypes is true
+      expect(result?.formatterTypesFileContent).toBeUndefined();
+    });
+
+    it('should not generate separate types file when inlineTypes is true even if typesOutput is provided', async () => {
+      const typesFilePath = join(EXAMPLE_DIR, 'types.ts');
+      const opts = supabaseToZodOptionsSchema.parse({
+        input: typesFilePath,
+        output: join(EXAMPLE_DIR, 'schema.ts'),
+        typesOutput: join(EXAMPLE_DIR, 'schema.d.ts'),
+        schema: ['public'],
+        verbose: false,
+        inlineTypes: true,
+      });
+
+      const result = await generateContent(opts);
+
+      expect(result).toBeDefined();
+      // With inlineTypes: true, types should be in schema file, not separate
+      expect(result?.formatterTypesFileContent).toBeUndefined();
+      expect(result?.formatterSchemasFileContent).toContain(
+        'export type PublicUsersRow',
+      );
+    });
+
+    it('should work with custom naming configuration when inlineTypes is true', async () => {
+      const typesFilePath = join(EXAMPLE_DIR, 'types.ts');
+      const opts = supabaseToZodOptionsSchema.parse({
+        input: typesFilePath,
+        output: join(EXAMPLE_DIR, 'schema.ts'),
+        schema: ['public'],
+        verbose: false,
+        inlineTypes: true,
+        namingConfig: {
+          tableOperationPattern: '{schema}_{table}_{operation}_Type',
+          tableSchemaPattern: '{schema}{table}{operation}',
+          capitalizeSchema: true,
+          capitalizeNames: true,
+          separator: '_',
+        },
+      });
+
+      const result = await generateContent(opts);
+
+      expect(result).toBeDefined();
+      expect(result?.formatterSchemasFileContent).toContain(
+        'export const publicUsersInsertSchema',
+      );
+      expect(result?.formatterSchemasFileContent).toContain(
+        'export type Public_Users_Insert_Type',
+      );
+    });
+
+    it('should generate inline types for multiple schemas', async () => {
+      const typesFilePath = join(EXAMPLE_DIR, 'types.ts');
+      const opts = supabaseToZodOptionsSchema.parse({
+        input: typesFilePath,
+        output: join(EXAMPLE_DIR, 'schema.ts'),
+        schema: ['public', 'schema_b'],
+        verbose: false,
+        inlineTypes: true,
+      });
+
+      const result = await generateContent(opts);
+
+      expect(result).toBeDefined();
+      // Should contain schemas from both schemas
+      expect(result?.formatterSchemasFileContent).toContain(
+        'export const publicUsersRowSchema',
+      );
+      expect(result?.formatterSchemasFileContent).toContain(
+        'export const schemaBUsersRowSchema',
+      );
+      // Should contain inline types from both schemas
+      expect(result?.formatterSchemasFileContent).toContain(
+        'export type PublicUsersRow',
+      );
+      expect(result?.formatterSchemasFileContent).toContain(
+        'export type SchemaBUsersRow',
+      );
+      // Should NOT have separate types file
+      expect(result?.formatterTypesFileContent).toBeUndefined();
+    });
+
+    it('should work with inlineTypes when default value (false) is used', async () => {
+      const typesFilePath = join(EXAMPLE_DIR, 'types.ts');
+      const opts = supabaseToZodOptionsSchema.parse({
+        input: typesFilePath,
+        output: join(EXAMPLE_DIR, 'schema.ts'),
+        typesOutput: join(EXAMPLE_DIR, 'schema.d.ts'),
+        schema: ['public'],
+        verbose: false,
+        // inlineTypes defaults to false
+      });
+
+      const result = await generateContent(opts);
+
+      expect(result).toBeDefined();
+      // Should have separate types file when inlineTypes is false (default)
+      expect(result?.formatterTypesFileContent).toBeDefined();
+      // Schema file should NOT contain inline type exports
+      expect(result?.formatterSchemasFileContent).not.toContain(
+        'export type PublicUsersRow = z.infer',
+      );
+    });
+  });
+
   describe('UTF-16 encoding detection', () => {
     it('should throw a helpful error when input file is UTF-16 LE encoded', async () => {
       const tempDir = mkdtempSync(join(tmpdir(), 'supazod-utf16-test-'));

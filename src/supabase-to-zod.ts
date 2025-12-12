@@ -58,6 +58,7 @@ export const supabaseToZodOptionsSchema = transformTypesOptionsSchema
     keepComments: z.boolean().optional().default(false),
     skipParseJSDoc: z.boolean().optional().default(false),
     verbose: z.boolean().optional().default(false),
+    inlineTypes: z.boolean().optional().default(false),
     typeNameTransformer: z
       .function({
         input: [z.string()],
@@ -227,9 +228,62 @@ export async function generateContent(opts: SupabaseToZodOptions) {
       schemaNameOverrides,
     );
 
-    const contentWithNewComment = replaceGeneratedComment(
-      schemaContentWithOverrides,
-    );
+    let finalSchemaContent = schemaContentWithOverrides;
+
+    // Handle inline types: append type exports directly to schema file
+    if (opts.inlineTypes) {
+      logger.info('Generating inline types...', '📝');
+
+      // Get inferred types without external import (use empty string for same-file reference)
+      let inlineTypesContent = getInferredTypes('');
+      inlineTypesContent = applySchemaNameOverrides(
+        inlineTypesContent,
+        schemaNameOverrides,
+      );
+
+      const typeNameOverrides = buildTypeNameOverrides(
+        schemaNameMappings,
+        opts.typeNameTransformer,
+      );
+      inlineTypesContent = applyTypeNameOverrides(
+        inlineTypesContent,
+        typeNameOverrides,
+      );
+
+      const preserveTypeNames = schemaNameMappings.some(({ typeName }) =>
+        /[^A-Za-z0-9]/.test(typeName),
+      );
+
+      const typeNameTransformer = preserveTypeNames
+        ? (name: string) => name
+        : opts.typeNameTransformer;
+
+      inlineTypesContent = transformTypeNames(
+        inlineTypesContent,
+        typeNameTransformer,
+      );
+
+      // Extract only the type export lines (remove imports and comments)
+      const typeExportLines = inlineTypesContent
+        .split('\n')
+        .filter((line) => line.trim().startsWith('export type '))
+        // Remove the "generated." prefix since types are in the same file
+        .map((line) => line.replace(/generated\./g, ''))
+        .join('\n');
+
+      // Remove type imports from schema content since types will be defined inline
+      // This prevents conflicts like "import { type Json }" and "export type Json"
+      const schemaContentWithoutTypeImports = removeTypeImports(
+        schemaContentWithOverrides,
+        typeExportLines,
+      );
+
+      // Append type exports to schema content
+      finalSchemaContent =
+        schemaContentWithoutTypeImports + '\n' + typeExportLines;
+    }
+
+    const contentWithNewComment = replaceGeneratedComment(finalSchemaContent);
 
     const formatterSchemasFileContent = await prettier.format(
       contentWithNewComment,
@@ -237,6 +291,14 @@ export async function generateContent(opts: SupabaseToZodOptions) {
         parser: 'babel-ts',
       },
     );
+
+    // If inlineTypes is true, don't generate separate types file
+    if (opts.inlineTypes) {
+      return {
+        rawSchemasFileContent: contentWithNewComment,
+        formatterSchemasFileContent,
+      };
+    }
 
     if (opts.typesOutput) {
       const typesOutputPath = join(process.cwd(), opts.typesOutput);
@@ -391,4 +453,91 @@ function applyTypeNameOverrides(
   }
 
   return updatedContent;
+}
+
+/**
+ * Remove type imports and type annotations from schema content that conflict with inline type exports.
+ * For example, if we're exporting `export type Json = z.infer<typeof jsonSchema>`,
+ * we need to:
+ * 1. Remove `import { type Json } from "./types"`
+ * 2. Remove type annotations like `: z.ZodSchema<Json>` to avoid circular references
+ */
+function removeTypeImports(
+  schemaContent: string,
+  typeExportLines: string,
+): string {
+  // Extract type names from export lines
+  // e.g., "export type Json = z.infer<typeof jsonSchema>;" -> "Json"
+  const exportedTypeNames = new Set<string>();
+  const exportTypeRegex = /export type (\w+)\s*=/g;
+  let match;
+  while ((match = exportTypeRegex.exec(typeExportLines)) !== null) {
+    exportedTypeNames.add(match[1]);
+  }
+
+  if (exportedTypeNames.size === 0) {
+    return schemaContent;
+  }
+
+  // Process the schema content line by line
+  const lines = schemaContent.split('\n');
+  const filteredLines: string[] = [];
+
+  for (const line of lines) {
+    let processedLine = line;
+
+    // Check if this is an import line with type imports
+    // Match patterns like: import { type Json } from "./types";
+    // or: import { type Json, type OtherType } from "./types";
+    const typeImportMatch = line.match(
+      /^import\s*\{\s*([^}]+)\s*\}\s*from\s*["'][^"']+["'];?\s*$/,
+    );
+
+    if (typeImportMatch) {
+      const importContent = typeImportMatch[1];
+      // Split by comma and check each import
+      const imports = importContent.split(',').map((s) => s.trim());
+      const remainingImports: string[] = [];
+
+      for (const imp of imports) {
+        // Check if this is a type import that matches our exported types
+        const typeMatch = imp.match(/^type\s+(\w+)$/);
+        if (typeMatch && exportedTypeNames.has(typeMatch[1])) {
+          // Skip this import - it will be defined inline
+          continue;
+        }
+        remainingImports.push(imp);
+      }
+
+      if (remainingImports.length === 0) {
+        // All imports were removed, skip the entire line
+        continue;
+      } else if (remainingImports.length < imports.length) {
+        // Some imports were removed, reconstruct the line
+        const fromMatch = line.match(/from\s*(["'][^"']+["']);?\s*$/);
+        if (fromMatch) {
+          filteredLines.push(
+            `import { ${remainingImports.join(', ')} } from ${fromMatch[1]};`,
+          );
+          continue;
+        }
+      }
+    }
+
+    // Remove type annotations that reference inline-exported types
+    // e.g., `: z.ZodSchema<Json>` or `: z.ZodType<Json>`
+    // This prevents circular references when the type is derived from the schema
+    for (const typeName of exportedTypeNames) {
+      // Match patterns like: z.ZodSchema<TypeName> or z.ZodType<TypeName>
+      const typeAnnotationRegex = new RegExp(
+        `:\\s*z\\.Zod(?:Schema|Type)<${escapeRegExp(typeName)}>`,
+        'g',
+      );
+      processedLine = processedLine.replace(typeAnnotationRegex, '');
+    }
+
+    filteredLines.push(processedLine);
+  }
+
+  return filteredLines.join('\n');
 }
