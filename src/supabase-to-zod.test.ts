@@ -143,11 +143,11 @@ describe('supazod', () => {
       import { z } from "zod";
       import { type Json } from "./types";
 
-      export const publicProviderSlugSchema = z.union([z.literal("github"), z.literal("slack"), z.literal("discord"), z.literal("web"), z.literal("linear"), z.literal("jira"), z.literal("memory"), z.literal("dosu_app")]);
+      export const publicProviderSlugSchema = z.enum(["github", "slack", "discord", "web", "linear", "jira", "memory", "dosu_app"]);
 
       export const jsonSchema: z.ZodSchema<Json> = z.lazy(() => z.union([z.string(), z.number(), z.boolean(), z.record(z.string(), jsonSchema), z.array(jsonSchema)]).nullable());
 
-      export const publicUserStatusSchema = z.union([z.literal("ONLINE"), z.literal("OFFLINE")]);
+      export const publicUserStatusSchema = z.enum(["ONLINE", "OFFLINE"]);
 
       export const publicUsersInsertSchema = z.object({
           username: z.string(),
@@ -175,7 +175,7 @@ describe('supazod', () => {
 
       export const publicGetStatusReturnsSchema = publicUserStatusSchema;
 
-      export const schemaBUserStatusSchema = z.union([z.literal("ONLINE"), z.literal("OFFLINE")]);
+      export const schemaBUserStatusSchema = z.enum(["ONLINE", "OFFLINE"]);
 
       export const publicUsersRowSchema = z.object({
           username: z.string(),
@@ -344,11 +344,11 @@ describe('supazod', () => {
       import { z } from "zod";
       import { type Json } from "./types";
 
-      export const publicProviderSlugSchema = z.union([z.literal("github"), z.literal("slack"), z.literal("discord"), z.literal("web"), z.literal("linear"), z.literal("jira"), z.literal("memory"), z.literal("dosu_app")]);
+      export const publicProviderSlugSchema = z.enum(["github", "slack", "discord", "web", "linear", "jira", "memory", "dosu_app"]);
 
       export const jsonSchema: z.ZodSchema<Json> = z.lazy(() => z.union([z.string(), z.number(), z.boolean(), z.record(z.string(), jsonSchema), z.array(jsonSchema)]).nullable());
 
-      export const publicUserStatusSchema = z.union([z.literal("ONLINE"), z.literal("OFFLINE")]);
+      export const publicUserStatusSchema = z.enum(["ONLINE", "OFFLINE"]);
 
       export const publicUsersInsertSchema = z.object({
           username: z.string(),
@@ -376,7 +376,7 @@ describe('supazod', () => {
 
       export const publicGetStatusReturnsSchema = publicUserStatusSchema;
 
-      export const schemaBUserStatusSchema = z.union([z.literal("ONLINE"), z.literal("OFFLINE")]);
+      export const schemaBUserStatusSchema = z.enum(["ONLINE", "OFFLINE"]);
 
       export const schemaBUsersRowSchema = z.object({
           username: z.string(),
@@ -1468,6 +1468,304 @@ export type Database = {
         });
 
         await expect(generateContent(opts)).rejects.toThrow(/UTF-16/);
+      } finally {
+        rmSync(tempDir, { recursive: true, force: true });
+      }
+    });
+  });
+
+  describe('enum generation with z.enum', () => {
+    it('should generate z.enum instead of z.union for PostgreSQL enums', async () => {
+      const tempDir = mkdtempSync(join(tmpdir(), 'supazod-enum-test-'));
+
+      try {
+        const enumTypesContent = `
+export type Json =
+  | string
+  | number
+  | boolean
+  | null
+  | { [key: string]: Json }
+  | Json[];
+
+export type Database = {
+  public: {
+    Tables: {
+      vehicles: {
+        Row: {
+          id: number;
+          name: string;
+          status: Database['public']['Enums']['vehicle_status'];
+        };
+        Insert: {
+          id?: number;
+          name: string;
+          status?: Database['public']['Enums']['vehicle_status'];
+        };
+        Update: {
+          id?: number;
+          name?: string;
+          status?: Database['public']['Enums']['vehicle_status'];
+        };
+        Relationships: [];
+      };
+    };
+    Views: {};
+    Functions: {};
+    Enums: {
+      vehicle_status: 'Operational' | 'Under Repair' | 'Accidental' | 'Scraped';
+    };
+    CompositeTypes: {};
+  };
+};
+`;
+
+        const inputPath = join(tempDir, 'types.ts');
+        const outputPath = join(tempDir, 'schema.ts');
+        writeFileSync(inputPath, enumTypesContent);
+
+        const opts = supabaseToZodOptionsSchema.parse({
+          input: inputPath,
+          output: outputPath,
+          schema: ['public'],
+          verbose: false,
+        });
+
+        const result = await generateContent(opts);
+
+        expect(result).toBeDefined();
+        // Should use z.enum instead of z.union with z.literal
+        expect(result?.rawSchemasFileContent).toContain(
+          'z.enum(["Operational", "Under Repair", "Accidental", "Scraped"])',
+        );
+        // Should NOT contain z.union with z.literal for enums
+        expect(result?.rawSchemasFileContent).not.toContain(
+          'z.union([z.literal("Operational")',
+        );
+      } finally {
+        rmSync(tempDir, { recursive: true, force: true });
+      }
+    });
+
+    it('should handle single-value enums with z.enum', async () => {
+      const tempDir = mkdtempSync(join(tmpdir(), 'supazod-single-enum-test-'));
+
+      try {
+        const singleEnumContent = `
+export type Database = {
+  public: {
+    Tables: {};
+    Views: {};
+    Functions: {};
+    Enums: {
+      single_value: 'only_option';
+    };
+    CompositeTypes: {};
+  };
+};
+`;
+
+        const inputPath = join(tempDir, 'types.ts');
+        const outputPath = join(tempDir, 'schema.ts');
+        writeFileSync(inputPath, singleEnumContent);
+
+        const opts = supabaseToZodOptionsSchema.parse({
+          input: inputPath,
+          output: outputPath,
+          schema: ['public'],
+          verbose: false,
+        });
+
+        const result = await generateContent(opts);
+
+        expect(result).toBeDefined();
+        // Single value enum should also use z.enum
+        expect(result?.rawSchemasFileContent).toContain(
+          'z.enum(["only_option"])',
+        );
+      } finally {
+        rmSync(tempDir, { recursive: true, force: true });
+      }
+    });
+
+    it('should handle multiple enums in the same schema', async () => {
+      const tempDir = mkdtempSync(join(tmpdir(), 'supazod-multi-enum-test-'));
+
+      try {
+        const multiEnumContent = `
+export type Database = {
+  public: {
+    Tables: {
+      orders: {
+        Row: {
+          id: number;
+          status: Database['public']['Enums']['order_status'];
+          priority: Database['public']['Enums']['priority_level'];
+        };
+        Insert: {
+          id?: number;
+          status?: Database['public']['Enums']['order_status'];
+          priority?: Database['public']['Enums']['priority_level'];
+        };
+        Update: {
+          id?: number;
+          status?: Database['public']['Enums']['order_status'];
+          priority?: Database['public']['Enums']['priority_level'];
+        };
+        Relationships: [];
+      };
+    };
+    Views: {};
+    Functions: {};
+    Enums: {
+      order_status: 'pending' | 'processing' | 'shipped' | 'delivered';
+      priority_level: 'low' | 'medium' | 'high' | 'urgent';
+    };
+    CompositeTypes: {};
+  };
+};
+`;
+
+        const inputPath = join(tempDir, 'types.ts');
+        const outputPath = join(tempDir, 'schema.ts');
+        writeFileSync(inputPath, multiEnumContent);
+
+        const opts = supabaseToZodOptionsSchema.parse({
+          input: inputPath,
+          output: outputPath,
+          schema: ['public'],
+          verbose: false,
+        });
+
+        const result = await generateContent(opts);
+
+        expect(result).toBeDefined();
+        // Both enums should use z.enum
+        expect(result?.rawSchemasFileContent).toContain(
+          'z.enum(["pending", "processing", "shipped", "delivered"])',
+        );
+        expect(result?.rawSchemasFileContent).toContain(
+          'z.enum(["low", "medium", "high", "urgent"])',
+        );
+        // Should NOT contain z.union with z.literal
+        expect(result?.rawSchemasFileContent).not.toContain(
+          'z.union([z.literal("pending")',
+        );
+        expect(result?.rawSchemasFileContent).not.toContain(
+          'z.union([z.literal("low")',
+        );
+      } finally {
+        rmSync(tempDir, { recursive: true, force: true });
+      }
+    });
+
+    it('should handle enum values with spaces and special characters', async () => {
+      const tempDir = mkdtempSync(join(tmpdir(), 'supazod-special-enum-test-'));
+
+      try {
+        const specialEnumContent = `
+export type Database = {
+  public: {
+    Tables: {};
+    Views: {};
+    Functions: {};
+    Enums: {
+      status_with_spaces: 'In Progress' | 'On Hold' | 'Ready for Review';
+    };
+    CompositeTypes: {};
+  };
+};
+`;
+
+        const inputPath = join(tempDir, 'types.ts');
+        const outputPath = join(tempDir, 'schema.ts');
+        writeFileSync(inputPath, specialEnumContent);
+
+        const opts = supabaseToZodOptionsSchema.parse({
+          input: inputPath,
+          output: outputPath,
+          schema: ['public'],
+          verbose: false,
+        });
+
+        const result = await generateContent(opts);
+
+        expect(result).toBeDefined();
+        // Enum with spaces should be converted properly
+        expect(result?.rawSchemasFileContent).toContain(
+          'z.enum(["In Progress", "On Hold", "Ready for Review"])',
+        );
+      } finally {
+        rmSync(tempDir, { recursive: true, force: true });
+      }
+    });
+
+    it('should NOT convert non-enum z.union types (e.g., Json type)', async () => {
+      const tempDir = mkdtempSync(
+        join(tmpdir(), 'supazod-union-preserve-test-'),
+      );
+
+      try {
+        const unionTypesContent = `
+export type Json =
+  | string
+  | number
+  | boolean
+  | null
+  | { [key: string]: Json }
+  | Json[];
+
+export type Database = {
+  public: {
+    Tables: {
+      data: {
+        Row: {
+          id: number;
+          payload: Json | null;
+        };
+        Insert: {
+          id?: number;
+          payload?: Json | null;
+        };
+        Update: {
+          id?: number;
+          payload?: Json | null;
+        };
+        Relationships: [];
+      };
+    };
+    Views: {};
+    Functions: {};
+    Enums: {
+      my_enum: 'option_a' | 'option_b';
+    };
+    CompositeTypes: {};
+  };
+};
+`;
+
+        const inputPath = join(tempDir, 'types.ts');
+        const outputPath = join(tempDir, 'schema.ts');
+        writeFileSync(inputPath, unionTypesContent);
+
+        const opts = supabaseToZodOptionsSchema.parse({
+          input: inputPath,
+          output: outputPath,
+          schema: ['public'],
+          verbose: false,
+        });
+
+        const result = await generateContent(opts);
+
+        expect(result).toBeDefined();
+        // Enum should use z.enum
+        expect(result?.rawSchemasFileContent).toContain(
+          'z.enum(["option_a", "option_b"])',
+        );
+        // Json schema should still use z.union for z.string(), z.number(), etc.
+        expect(result?.rawSchemasFileContent).toContain(
+          'z.union([z.string(), z.number(), z.boolean()',
+        );
       } finally {
         rmSync(tempDir, { recursive: true, force: true });
       }

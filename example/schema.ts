@@ -7,15 +7,15 @@
 import { z } from "zod";
 import { type Json } from "./types";
 
-export const publicProviderSlugSchema = z.union([
-  z.literal("github"),
-  z.literal("slack"),
-  z.literal("discord"),
-  z.literal("web"),
-  z.literal("linear"),
-  z.literal("jira"),
-  z.literal("memory"),
-  z.literal("dosu_app"),
+export const publicProviderSlugSchema = z.enum([
+  "github",
+  "slack",
+  "discord",
+  "web",
+  "linear",
+  "jira",
+  "memory",
+  "dosu_app",
 ]);
 
 export const jsonSchema: z.ZodSchema<Json> = z.lazy(() =>
@@ -30,10 +30,7 @@ export const jsonSchema: z.ZodSchema<Json> = z.lazy(() =>
     .nullable(),
 );
 
-export const publicUserStatusSchema = z.union([
-  z.literal("ONLINE"),
-  z.literal("OFFLINE"),
-]);
+export const publicUserStatusSchema = z.enum(["ONLINE", "OFFLINE"]);
 
 export const publicUsersInsertSchema = z.object({
   username: z.string(),
@@ -61,10 +58,7 @@ export const publicGetStatusArgsSchema = z.object({
 
 export const publicGetStatusReturnsSchema = publicUserStatusSchema;
 
-export const schemaBUserStatusSchema = z.union([
-  z.literal("ONLINE"),
-  z.literal("OFFLINE"),
-]);
+export const schemaBUserStatusSchema = z.enum(["ONLINE", "OFFLINE"]);
 
 export const schemaBUsersRowSchema = z.object({
   username: z.string(),
