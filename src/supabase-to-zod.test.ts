@@ -1,6 +1,6 @@
 import { readFileSync, writeFileSync, mkdtempSync, rmSync } from 'node:fs';
-import { join } from 'node:path';
 import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import { fileURLToPath } from 'url';
 import { describe, expect, it } from 'vitest';
 
@@ -648,8 +648,12 @@ export type Database = MergeDeep<
         // Verify that schemas were generated for the tables
         expect(result).toBeDefined();
         expect(result?.rawSchemasFileContent).toContain('publicUsersRowSchema');
-        expect(result?.rawSchemasFileContent).toContain('publicUsersInsertSchema');
-        expect(result?.rawSchemasFileContent).toContain('publicUsersUpdateSchema');
+        expect(result?.rawSchemasFileContent).toContain(
+          'publicUsersInsertSchema',
+        );
+        expect(result?.rawSchemasFileContent).toContain(
+          'publicUsersUpdateSchema',
+        );
         // Verify enum was generated
         expect(result?.rawSchemasFileContent).toContain('publicUserRoleSchema');
       } finally {
@@ -734,8 +738,12 @@ export type Database = MergeDeep<
 
         expect(result).toBeDefined();
         expect(result?.rawSchemasFileContent).toContain('publicPostsRowSchema');
-        expect(result?.rawSchemasFileContent).toContain('publicPostsInsertSchema');
-        expect(result?.rawSchemasFileContent).toContain('publicPostStatusSchema');
+        expect(result?.rawSchemasFileContent).toContain(
+          'publicPostsInsertSchema',
+        );
+        expect(result?.rawSchemasFileContent).toContain(
+          'publicPostStatusSchema',
+        );
       } finally {
         rmSync(tempDir, { recursive: true, force: true });
       }
@@ -966,26 +974,58 @@ export type Database = MergeDeep<
 
         expect(publicResult).toBeDefined();
         // Tables
-        expect(publicResult?.rawSchemasFileContent).toContain('publicUsersRowSchema');
-        expect(publicResult?.rawSchemasFileContent).toContain('publicUsersInsertSchema');
-        expect(publicResult?.rawSchemasFileContent).toContain('publicUsersUpdateSchema');
-        expect(publicResult?.rawSchemasFileContent).toContain('publicOrdersRowSchema');
-        expect(publicResult?.rawSchemasFileContent).toContain('publicOrdersInsertSchema');
+        expect(publicResult?.rawSchemasFileContent).toContain(
+          'publicUsersRowSchema',
+        );
+        expect(publicResult?.rawSchemasFileContent).toContain(
+          'publicUsersInsertSchema',
+        );
+        expect(publicResult?.rawSchemasFileContent).toContain(
+          'publicUsersUpdateSchema',
+        );
+        expect(publicResult?.rawSchemasFileContent).toContain(
+          'publicOrdersRowSchema',
+        );
+        expect(publicResult?.rawSchemasFileContent).toContain(
+          'publicOrdersInsertSchema',
+        );
         // Views
-        expect(publicResult?.rawSchemasFileContent).toContain('publicActiveUsersRowSchema');
-        expect(publicResult?.rawSchemasFileContent).toContain('publicOrderSummaryRowSchema');
+        expect(publicResult?.rawSchemasFileContent).toContain(
+          'publicActiveUsersRowSchema',
+        );
+        expect(publicResult?.rawSchemasFileContent).toContain(
+          'publicOrderSummaryRowSchema',
+        );
         // Functions
-        expect(publicResult?.rawSchemasFileContent).toContain('publicGetUserOrdersArgsSchema');
-        expect(publicResult?.rawSchemasFileContent).toContain('publicGetUserOrdersReturnsSchema');
-        expect(publicResult?.rawSchemasFileContent).toContain('publicCalculateDiscountArgsSchema');
-        expect(publicResult?.rawSchemasFileContent).toContain('publicCalculateDiscountReturnsSchema');
-        expect(publicResult?.rawSchemasFileContent).toContain('publicGetUserRoleArgsSchema');
+        expect(publicResult?.rawSchemasFileContent).toContain(
+          'publicGetUserOrdersArgsSchema',
+        );
+        expect(publicResult?.rawSchemasFileContent).toContain(
+          'publicGetUserOrdersReturnsSchema',
+        );
+        expect(publicResult?.rawSchemasFileContent).toContain(
+          'publicCalculateDiscountArgsSchema',
+        );
+        expect(publicResult?.rawSchemasFileContent).toContain(
+          'publicCalculateDiscountReturnsSchema',
+        );
+        expect(publicResult?.rawSchemasFileContent).toContain(
+          'publicGetUserRoleArgsSchema',
+        );
         // Enums
-        expect(publicResult?.rawSchemasFileContent).toContain('publicUserRoleSchema');
-        expect(publicResult?.rawSchemasFileContent).toContain('publicOrderStatusSchema');
+        expect(publicResult?.rawSchemasFileContent).toContain(
+          'publicUserRoleSchema',
+        );
+        expect(publicResult?.rawSchemasFileContent).toContain(
+          'publicOrderStatusSchema',
+        );
         // CompositeTypes
-        expect(publicResult?.rawSchemasFileContent).toContain('publicAddressTypeSchema');
-        expect(publicResult?.rawSchemasFileContent).toContain('publicMoneyTypeSchema');
+        expect(publicResult?.rawSchemasFileContent).toContain(
+          'publicAddressTypeSchema',
+        );
+        expect(publicResult?.rawSchemasFileContent).toContain(
+          'publicMoneyTypeSchema',
+        );
 
         // Test with analytics schema
         const analyticsOpts = supabaseToZodOptionsSchema.parse({
@@ -998,9 +1038,15 @@ export type Database = MergeDeep<
         const analyticsResult = await generateContent(analyticsOpts);
 
         expect(analyticsResult).toBeDefined();
-        expect(analyticsResult?.rawSchemasFileContent).toContain('analyticsEventsRowSchema');
-        expect(analyticsResult?.rawSchemasFileContent).toContain('analyticsAggregateEventsArgsSchema');
-        expect(analyticsResult?.rawSchemasFileContent).toContain('analyticsEventCategorySchema');
+        expect(analyticsResult?.rawSchemasFileContent).toContain(
+          'analyticsEventsRowSchema',
+        );
+        expect(analyticsResult?.rawSchemasFileContent).toContain(
+          'analyticsAggregateEventsArgsSchema',
+        );
+        expect(analyticsResult?.rawSchemasFileContent).toContain(
+          'analyticsEventCategorySchema',
+        );
 
         // Test with all schemas (empty array triggers auto-detection)
         const allSchemasOpts = supabaseToZodOptionsSchema.parse({
@@ -1013,8 +1059,12 @@ export type Database = MergeDeep<
         const allResult = await generateContent(allSchemasOpts);
         expect(allResult).toBeDefined();
         // Should contain schemas from both public and analytics
-        expect(allResult?.rawSchemasFileContent).toContain('publicUsersRowSchema');
-        expect(allResult?.rawSchemasFileContent).toContain('analyticsEventsRowSchema');
+        expect(allResult?.rawSchemasFileContent).toContain(
+          'publicUsersRowSchema',
+        );
+        expect(allResult?.rawSchemasFileContent).toContain(
+          'analyticsEventsRowSchema',
+        );
       } finally {
         rmSync(tempDir, { recursive: true, force: true });
       }
@@ -1170,20 +1220,40 @@ export type Database = MergeDeepStrict<
 
         expect(result).toBeDefined();
         // Tables
-        expect(result?.rawSchemasFileContent).toContain('publicProductsRowSchema');
-        expect(result?.rawSchemasFileContent).toContain('publicProductsInsertSchema');
-        expect(result?.rawSchemasFileContent).toContain('publicProductsUpdateSchema');
-        expect(result?.rawSchemasFileContent).toContain('publicInventoryRowSchema');
+        expect(result?.rawSchemasFileContent).toContain(
+          'publicProductsRowSchema',
+        );
+        expect(result?.rawSchemasFileContent).toContain(
+          'publicProductsInsertSchema',
+        );
+        expect(result?.rawSchemasFileContent).toContain(
+          'publicProductsUpdateSchema',
+        );
+        expect(result?.rawSchemasFileContent).toContain(
+          'publicInventoryRowSchema',
+        );
         // Views
-        expect(result?.rawSchemasFileContent).toContain('publicLowStockProductsRowSchema');
+        expect(result?.rawSchemasFileContent).toContain(
+          'publicLowStockProductsRowSchema',
+        );
         // Functions
-        expect(result?.rawSchemasFileContent).toContain('publicRestockProductArgsSchema');
-        expect(result?.rawSchemasFileContent).toContain('publicRestockProductReturnsSchema');
-        expect(result?.rawSchemasFileContent).toContain('publicGetProductAvailabilityArgsSchema');
+        expect(result?.rawSchemasFileContent).toContain(
+          'publicRestockProductArgsSchema',
+        );
+        expect(result?.rawSchemasFileContent).toContain(
+          'publicRestockProductReturnsSchema',
+        );
+        expect(result?.rawSchemasFileContent).toContain(
+          'publicGetProductAvailabilityArgsSchema',
+        );
         // Enums
-        expect(result?.rawSchemasFileContent).toContain('publicProductCategorySchema');
+        expect(result?.rawSchemasFileContent).toContain(
+          'publicProductCategorySchema',
+        );
         // CompositeTypes
-        expect(result?.rawSchemasFileContent).toContain('publicStockInfoSchema');
+        expect(result?.rawSchemasFileContent).toContain(
+          'publicStockInfoSchema',
+        );
       } finally {
         rmSync(tempDir, { recursive: true, force: true });
       }
