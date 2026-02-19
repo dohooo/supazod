@@ -2,6 +2,7 @@ import { existsSync, readFileSync } from 'node:fs';
 import { isAbsolute, join, resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
 
+import { bundleRequire } from 'bundle-require';
 import { logger } from './logger';
 import {
   namingConfigSchema,
@@ -67,6 +68,12 @@ async function loadConfigFromPath(configPath: string): Promise<SupazodConfig> {
     ) {
       const configContent = readFileSync(configPath, 'utf-8');
       config = JSON.parse(configContent);
+    } else if (configPath.endsWith('.ts')) {
+      const { mod } = await bundleRequire({
+        filepath: configPath,
+      });
+
+      config = mod.default || mod;
     } else {
       const configUrl = pathToFileURL(configPath).href;
       const configModule = await import(configUrl);
