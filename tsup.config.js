@@ -10,4 +10,5 @@ export default defineConfig({
   minify: isProduction,
   shims: true,
   sourcemap: true,
+  external: ['esbuild'],
 });
